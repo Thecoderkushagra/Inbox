@@ -1,0 +1,70 @@
+# ===================================================================
+# BASE CONFIGURATION (application.yml)
+# ===================================================================
+# This file imports environment variables and establishes common defaults.
+# All sensitive values are resolved via placeholders.
+
+spring:
+  application:
+    name: ${APP_NAME}
+  
+  profiles:
+    # Resolves the active Spring Profile from the environment variable
+    active: ${APP_ENV}
+    
+  lifecycle:
+    # Graceful shutdown timeout before forcing termination
+    timeout-per-shutdown-phase: 30s
+    
+  flyway:
+    locations: classpath:db/migration
+    validate-on-migrate: true
+    clean-disabled: true
+    out-of-order: false
+    baseline-on-migrate: false
+    encoding: UTF-8
+
+server:
+  port: ${SERVER_PORT}
+  shutdown: graceful
+  servlet:
+    encoding:
+      # Enforce UTF-8 encoding universally
+      charset: UTF-8
+      enabled: true
+      force: true
+  error:
+    # Secure default: Never expose stack traces to clients
+    include-stacktrace: never
+
+# ===================================================================
+# CUSTOM CONFIGURATION PROPERTIES BINDING
+# ===================================================================
+# Binds YAML structure to the @ConfigurationProperties classes
+
+app:
+  name: ${APP_NAME}
+  environment: ${APP_ENV}
+  version: ${APP_VERSION}
+
+jwt:
+  secret: ${JWT_SECRET}
+  accessTokenExpiration: ${JWT_ACCESS_EXPIRATION}
+  refreshTokenExpiration: ${JWT_REFRESH_EXPIRATION}
+
+db:
+  host: ${DB_HOST}
+  port: ${DB_PORT}
+  database: ${DB_NAME}
+  username: ${DB_USERNAME}
+  password: ${DB_PASSWORD}
+
+smtp:
+  host: ${SMTP_HOST}
+  port: ${SMTP_PORT}
+  username: ${SMTP_USERNAME}
+  password: ${SMTP_PASSWORD}
+  from: ${SMTP_FROM}
+
+cors:
+  allowedOrigins: ${CORS_ALLOWED_ORIGINS}

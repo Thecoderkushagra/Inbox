@@ -1,0 +1,7 @@
+-- ==============================================================================
+-- V1: Baseline Migration
+-- ==============================================================================
+-- This file establishes the Flyway migration history table and versioning.
+-- No business schema, tables, or data should be placed here.
+-- All future schema evolution will occur in sequential V<version>__<name>.sql files.
+-- ==============================================================================

@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: messaging-postgres-dev
+    environment:
+      POSTGRES_USER: ${DB_USER:-messaging_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-messaging_password}
+      POSTGRES_DB: ${DB_NAME:-messaging_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    networks:
+      - messaging_dev_network
+
+  backend:
+    # Build context to be uncommented when Dockerfiles are created
+    # build:
+    #   context: .
+    #   dockerfile: docker/backend/Dockerfile.dev
+    image: messaging-backend-dev
+    container_name: messaging-backend-dev
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-messaging_db}
+      - DB_USER=${DB_USER:-messaging_user}
+      - DB_PASSWORD=${DB_PASSWORD:-messaging_password}
+      - SPRING_PROFILES_ACTIVE=dev
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - postgres
+    networks:
+      - messaging_dev_network
+
+  frontend:
+    # build:
+    #   context: .
+    #   dockerfile: docker/frontend/Dockerfile.dev
+    image: messaging-frontend-dev
+    container_name: messaging-frontend-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - messaging_dev_network
+
+networks:
+  messaging_dev_network:
+    driver: bridge
+
+volumes:
+  postgres_data_dev:

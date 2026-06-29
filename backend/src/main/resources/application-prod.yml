@@ -1,0 +1,32 @@
+# ===================================================================
+# PRODUCTION PROFILE (application-prod.yml)
+# ===================================================================
+# Optimizes settings for performance, security, and stability.
+
+spring:
+  flyway:
+    # Applies strict, versioned database schema upgrades on startup
+    enabled: true
+
+server:
+  shutdown: graceful
+  forward-headers-strategy: framework # Securely handle Nginx proxy headers
+  
+  compression:
+    # Reduce bandwidth usage for large REST responses
+    enabled: true
+    min-response-size: 2048
+    mime-types: application/json,text/plain
+    
+  tomcat:
+    # HTTP server tuning for high concurrency
+    threads:
+      max: 250
+      min-spare: 25
+
+logging:
+  level:
+    # Minimal logging to reduce I/O bottlenecks and prevent data leakage
+    root: WARN
+    com.messaging.backend: INFO
+    org.springframework: ERROR

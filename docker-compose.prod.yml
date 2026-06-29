@@ -1,0 +1,85 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: messaging-postgres-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    networks:
+      - messaging_prod_network
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'postgres healthcheck placeholder'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  backend:
+    # build:
+    #   context: .
+    #   dockerfile: docker/backend/Dockerfile.prod
+    image: messaging-backend-prod
+    container_name: messaging-backend-prod
+    restart: unless-stopped
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - SPRING_PROFILES_ACTIVE=prod
+    depends_on:
+      - postgres
+    networks:
+      - messaging_prod_network
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'backend healthcheck placeholder'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    # build:
+    #   context: .
+    #   dockerfile: docker/frontend/Dockerfile.prod
+    image: messaging-frontend-prod
+    container_name: messaging-frontend-prod
+    restart: unless-stopped
+    networks:
+      - messaging_prod_network
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'frontend healthcheck placeholder'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  nginx:
+    image: nginx:alpine
+    container_name: messaging-nginx-prod
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - nginx_config_prod:/etc/nginx/conf.d
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - messaging_prod_network
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'nginx healthcheck placeholder'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  messaging_prod_network:
+    driver: bridge
+
+volumes:
+  postgres_data_prod:
+  nginx_config_prod:
