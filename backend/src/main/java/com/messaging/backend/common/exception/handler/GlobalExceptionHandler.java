@@ -20,12 +20,12 @@ import java.time.Instant;
 
 /**
  * Centralized global exception handler for all application errors.
- * 
+ * <p>
  * Purpose:
- * Intercepts both expected business exceptions (ApplicationException) and unexpected technical 
- * failures, converting them into standard ApiError payloads. Enforces the structured logging 
+ * Intercepts both expected business exceptions (ApplicationException) and unexpected technical
+ * failures, converting them into standard ApiError payloads. Enforces the structured logging
  * strategy (WARN for expected, ERROR for unexpected, INFO for validation).
- * 
+ * <p>
  * Future usage:
  * Will securely capture and mask any deep system errors ensuring stack traces are never exposed.
  */
@@ -48,13 +48,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleValidationException(MethodArgumentNotValidException ex, HttpServletRequest request) {
         log.info("Validation Error: {}", ex.getMessage());
-        return buildResponse(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.VALIDATION_ERROR, "Invalid request payload", request.getRequestURI());
+        return buildResponse(HttpStatus.valueOf(422), ErrorCode.VALIDATION_ERROR, "Invalid request payload", request.getRequestURI());
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ApiError> handleConstraintViolation(ConstraintViolationException ex, HttpServletRequest request) {
         log.info("Constraint Violation: {}", ex.getMessage());
-        return buildResponse(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.VALIDATION_ERROR, "Validation constraint violated", request.getRequestURI());
+        return buildResponse(HttpStatus.valueOf(422), ErrorCode.VALIDATION_ERROR, "Validation constraint violated", request.getRequestURI());
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)

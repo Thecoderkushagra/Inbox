@@ -13,6 +13,6 @@ import org.springframework.http.HttpStatus;
 public class ValidationException extends ApplicationException {
 
     public ValidationException(String message) {
-        super(message, ErrorCode.VALIDATION_ERROR, HttpStatus.UNPROCESSABLE_ENTITY);
+        super(message, ErrorCode.VALIDATION_ERROR, HttpStatus.valueOf(422));
     }
 }
