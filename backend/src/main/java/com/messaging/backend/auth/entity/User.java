@@ -13,8 +13,10 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import com.messaging.backend.users.entity.UserProfile;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -85,6 +87,9 @@ public class User extends BaseEntity {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Set<EmailVerificationToken> emailVerificationTokens = new HashSet<>();
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private UserProfile profile;
 
     @Builder
     public User(String email, String username, String passwordHash, UserStatus status, boolean emailVerified) {

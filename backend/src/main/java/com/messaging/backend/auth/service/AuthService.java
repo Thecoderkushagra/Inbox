@@ -39,6 +39,7 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -375,5 +376,10 @@ public class AuthService {
         } catch (NoSuchAlgorithmException e) {
             throw new InternalServerException("Failed to hash token due to missing algorithm", e);
         }
+    }
+
+    public User getUserById(UUID userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
     }
 }

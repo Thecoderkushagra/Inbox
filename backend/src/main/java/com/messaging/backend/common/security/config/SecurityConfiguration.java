@@ -18,6 +18,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.http.HttpMethod;
 
 /**
  * Primary security configuration for the application.
@@ -73,6 +74,8 @@ public class SecurityConfiguration {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .headers(securityHeadersCustomizer)
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers(HttpMethod.GET, "/api/v1/users/me").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/v1/users", "/api/v1/users/*").permitAll()
                 .requestMatchers(SecurityEndpoints.PUBLIC_ENDPOINTS).permitAll()
                 .anyRequest().authenticated()
             )
