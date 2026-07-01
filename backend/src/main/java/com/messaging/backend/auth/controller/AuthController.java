@@ -1,16 +1,27 @@
 package com.messaging.backend.auth.controller;
 
+import com.messaging.backend.auth.dto.request.LoginRequest;
+import com.messaging.backend.auth.dto.request.LogoutRequest;
+import com.messaging.backend.auth.dto.request.RefreshTokenRequest;
 import com.messaging.backend.auth.dto.request.RegisterRequest;
+import com.messaging.backend.auth.dto.request.VerifyEmailRequest;
+import com.messaging.backend.auth.dto.response.LoginResponse;
+import com.messaging.backend.auth.dto.response.RefreshTokenResponse;
 import com.messaging.backend.auth.dto.response.RegisterResponse;
+import com.messaging.backend.auth.dto.response.VerifyEmailResponse;
+import com.messaging.backend.auth.security.AuthenticatedUser;
 import com.messaging.backend.auth.service.AuthService;
 import com.messaging.backend.common.dto.response.SuccessResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+
 
 /**
  * Controller handling authentication endpoints.
@@ -55,8 +66,8 @@ public class AuthController {
      * @return 200 OK with the verified user details
      */
     @PostMapping("/verify-email")
-    public ResponseEntity<SuccessResponse<com.messaging.backend.auth.dto.response.VerifyEmailResponse>> verifyEmail(@Valid @RequestBody com.messaging.backend.auth.dto.request.VerifyEmailRequest request) {
-        com.messaging.backend.auth.dto.response.VerifyEmailResponse response = authService.verifyEmail(request);
+    public ResponseEntity<SuccessResponse<VerifyEmailResponse>> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+        VerifyEmailResponse response = authService.verifyEmail(request);
         return ResponseEntity.ok(SuccessResponse.success("Email verified successfully", response));
     }
 
@@ -67,8 +78,8 @@ public class AuthController {
      * @return 200 OK with the JWTs and non-sensitive user details
      */
     @PostMapping("/login")
-    public ResponseEntity<SuccessResponse<com.messaging.backend.auth.dto.response.LoginResponse>> login(@Valid @RequestBody com.messaging.backend.auth.dto.request.LoginRequest request) {
-        com.messaging.backend.auth.dto.response.LoginResponse response = authService.login(request);
+    public ResponseEntity<SuccessResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
+        LoginResponse response = authService.login(request);
         return ResponseEntity.ok(SuccessResponse.success("Login successful", response));
     }
 
@@ -79,8 +90,8 @@ public class AuthController {
      * @return 200 OK with the newly generated JWTs
      */
     @PostMapping("/refresh")
-    public ResponseEntity<SuccessResponse<com.messaging.backend.auth.dto.response.RefreshTokenResponse>> refresh(@Valid @RequestBody com.messaging.backend.auth.dto.request.RefreshTokenRequest request) {
-        com.messaging.backend.auth.dto.response.RefreshTokenResponse response = authService.refresh(request);
+    public ResponseEntity<SuccessResponse<RefreshTokenResponse>> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        RefreshTokenResponse response = authService.refresh(request);
         return ResponseEntity.ok(SuccessResponse.success("Session refreshed successfully", response));
     }
 
@@ -93,8 +104,8 @@ public class AuthController {
      */
     @PostMapping("/logout")
     public ResponseEntity<SuccessResponse<Void>> logout(
-            @Valid @RequestBody com.messaging.backend.auth.dto.request.LogoutRequest request,
-            @org.springframework.security.core.annotation.AuthenticationPrincipal com.messaging.backend.auth.security.AuthenticatedUser authenticatedUser) {
+            @Valid @RequestBody LogoutRequest request,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser) {
         authService.logout(request, authenticatedUser);
         return ResponseEntity.ok(SuccessResponse.success("Logged out successfully.", null));
     }

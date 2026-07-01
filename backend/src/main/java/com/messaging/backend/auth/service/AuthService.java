@@ -1,9 +1,12 @@
 package com.messaging.backend.auth.service;
 
 import com.messaging.backend.auth.dto.request.LoginRequest;
+import com.messaging.backend.auth.dto.request.LogoutRequest;
+import com.messaging.backend.auth.dto.request.RefreshTokenRequest;
 import com.messaging.backend.auth.dto.request.RegisterRequest;
 import com.messaging.backend.auth.dto.request.VerifyEmailRequest;
 import com.messaging.backend.auth.dto.response.LoginResponse;
+import com.messaging.backend.auth.dto.response.RefreshTokenResponse;
 import com.messaging.backend.auth.dto.response.RegisterResponse;
 import com.messaging.backend.auth.dto.response.VerifyEmailResponse;
 import com.messaging.backend.auth.entity.EmailVerificationToken;
@@ -17,17 +20,17 @@ import com.messaging.backend.auth.repository.EmailVerificationTokenRepository;
 import com.messaging.backend.auth.repository.RefreshTokenRepository;
 import com.messaging.backend.auth.repository.RoleRepository;
 import com.messaging.backend.auth.repository.UserRepository;
+import com.messaging.backend.auth.security.AuthenticatedUser;
 import com.messaging.backend.common.config.JwtProperties;
 import com.messaging.backend.common.exception.BadRequestException;
 import com.messaging.backend.common.exception.ConflictException;
 import com.messaging.backend.common.exception.ForbiddenException;
 import com.messaging.backend.common.exception.InternalServerException;
 import com.messaging.backend.common.exception.ResourceNotFoundException;
+import com.messaging.backend.common.security.exception.JwtAuthenticationException;
+import com.messaging.backend.common.security.exception.JwtExpiredTokenException;
+import com.messaging.backend.common.security.jwt.JwtTokenClaims;
 import com.messaging.backend.common.security.jwt.JwtTokenProvider;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -35,7 +38,14 @@ import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+
+
 
 /**
  * Service handling authentication-related business logic.
@@ -241,15 +251,15 @@ public class AuthService {
      * @return RefreshTokenResponse containing the new tokens
      */
     @Transactional
-    public com.messaging.backend.auth.dto.response.RefreshTokenResponse refresh(com.messaging.backend.auth.dto.request.RefreshTokenRequest request) {
-        com.messaging.backend.common.security.jwt.JwtTokenClaims claims;
+    public RefreshTokenResponse refresh(RefreshTokenRequest request) {
+        JwtTokenClaims claims;
         try {
             claims = jwtTokenProvider.parseAndValidateToken(request.refreshToken());
-        } catch (com.messaging.backend.common.security.exception.JwtAuthenticationException e) {
+        } catch (JwtAuthenticationException e) {
             throw new BadRequestException("Invalid or expired refresh token");
         }
 
-        if (!com.messaging.backend.common.security.jwt.JwtTokenClaims.TOKEN_TYPE_REFRESH.equals(claims.getTokenType())) {
+        if (!JwtTokenClaims.TOKEN_TYPE_REFRESH.equals(claims.getTokenType())) {
             throw new BadRequestException("Invalid token type");
         }
 
@@ -314,24 +324,24 @@ public class AuthService {
      * @param authenticatedUser the currently authenticated user
      */
     @Transactional
-    public void logout(com.messaging.backend.auth.dto.request.LogoutRequest request, com.messaging.backend.auth.security.AuthenticatedUser authenticatedUser) {
-        com.messaging.backend.common.security.jwt.JwtTokenClaims claims;
+    public void logout(LogoutRequest request, AuthenticatedUser authenticatedUser) {
+        JwtTokenClaims claims;
         try {
             claims = jwtTokenProvider.parseAndValidateToken(request.refreshToken());
-        } catch (com.messaging.backend.common.security.exception.JwtExpiredTokenException e) {
+        } catch (JwtExpiredTokenException e) {
             // An expired token is technically already unusable. Idempotent success.
             return;
-        } catch (com.messaging.backend.common.security.exception.JwtAuthenticationException e) {
+        } catch (JwtAuthenticationException e) {
             throw new BadRequestException("Invalid refresh token");
         }
 
-        if (!com.messaging.backend.common.security.jwt.JwtTokenClaims.TOKEN_TYPE_REFRESH.equals(claims.getTokenType())) {
+        if (!JwtTokenClaims.TOKEN_TYPE_REFRESH.equals(claims.getTokenType())) {
             throw new BadRequestException("Invalid token type");
         }
 
         String hashedToken = hashToken(request.refreshToken());
 
-        java.util.Optional<RefreshToken> optionalToken = refreshTokenRepository.findByTokenHash(hashedToken);
+        Optional<RefreshToken> optionalToken = refreshTokenRepository.findByTokenHash(hashedToken);
         if (optionalToken.isEmpty()) {
             return; // Idempotent success
         }

@@ -1,13 +1,16 @@
 package com.messaging.backend.common.security.config;
 
 import com.messaging.backend.common.config.CorsProperties;
+import java.util.Arrays;
+import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
-import java.util.List;
+
+
 
 /**
  * Configures Cross-Origin Resource Sharing (CORS) rules.
@@ -34,7 +37,7 @@ public class CorsConfiguration {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
+        CorsConfiguration configuration = new CorsConfiguration();
         
         configuration.setAllowedOrigins(corsProperties.getAllowedOrigins());
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));

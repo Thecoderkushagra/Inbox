@@ -1,6 +1,9 @@
 package com.messaging.backend.common.exception;
 
 import com.messaging.backend.common.exception.model.ErrorCode;
+import org.springframework.http.HttpStatus;
+
+
 
 /**
  * Exception thrown when a user is authenticated but not authorized to perform an action.
@@ -12,10 +15,10 @@ import com.messaging.backend.common.exception.model.ErrorCode;
 public class ForbiddenException extends ApplicationException {
 
     public ForbiddenException(String message) {
-        super(message, ErrorCode.FORBIDDEN, org.springframework.http.HttpStatus.FORBIDDEN);
+        super(message, ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN);
     }
 
     public ForbiddenException(String message, Throwable cause) {
-        super(message, cause, ErrorCode.FORBIDDEN, org.springframework.http.HttpStatus.FORBIDDEN);
+        super(message, cause, ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN);
     }
 }

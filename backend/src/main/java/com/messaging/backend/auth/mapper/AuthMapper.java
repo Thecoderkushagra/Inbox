@@ -1,9 +1,17 @@
 package com.messaging.backend.auth.mapper;
 
+import com.messaging.backend.auth.dto.response.LoginResponse;
+import com.messaging.backend.auth.dto.response.RefreshTokenResponse;
 import com.messaging.backend.auth.dto.response.RegisterResponse;
+import com.messaging.backend.auth.dto.response.VerifyEmailResponse;
 import com.messaging.backend.auth.entity.User;
 import com.messaging.backend.auth.enums.UserStatus;
+import java.time.Instant;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
+
+
 
 /**
  * Mapper for Authentication related DTOs and Entities.
@@ -49,12 +57,12 @@ public class AuthMapper {
      * @param verifiedAt the time the verification occurred
      * @return VerifyEmailResponse containing safe fields
      */
-    public com.messaging.backend.auth.dto.response.VerifyEmailResponse toVerifyEmailResponse(User user, java.time.Instant verifiedAt) {
+    public VerifyEmailResponse toVerifyEmailResponse(User user, Instant verifiedAt) {
         if (user == null) {
             return null;
         }
 
-        return new com.messaging.backend.auth.dto.response.VerifyEmailResponse(
+        return new VerifyEmailResponse(
             user.getId(),
             user.getUsername(),
             user.getEmail(),
@@ -72,21 +80,21 @@ public class AuthMapper {
      * @param refreshTokenExpiresAt expiration of the refresh token
      * @return LoginResponse containing tokens and safe user fields
      */
-    public com.messaging.backend.auth.dto.response.LoginResponse toLoginResponse(
+    public LoginResponse toLoginResponse(
             User user,
             String accessToken,
             String refreshToken,
-            java.time.Instant accessTokenExpiresAt,
-            java.time.Instant refreshTokenExpiresAt) {
+            Instant accessTokenExpiresAt,
+            Instant refreshTokenExpiresAt) {
         if (user == null) {
             return null;
         }
 
-        java.util.List<String> roles = user.getRoles().stream()
+        List<String> roles = user.getRoles().stream()
                 .map(role -> role.getName().name())
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
 
-        return new com.messaging.backend.auth.dto.response.LoginResponse(
+        return new LoginResponse(
             user.getId(),
             user.getUsername(),
             user.getEmail(),
@@ -106,12 +114,12 @@ public class AuthMapper {
      * @param refreshTokenExpiresAt expiration of the new refresh token
      * @return RefreshTokenResponse containing the new tokens
      */
-    public com.messaging.backend.auth.dto.response.RefreshTokenResponse toRefreshTokenResponse(
+    public RefreshTokenResponse toRefreshTokenResponse(
             String accessToken,
             String refreshToken,
-            java.time.Instant accessTokenExpiresAt,
-            java.time.Instant refreshTokenExpiresAt) {
-        return new com.messaging.backend.auth.dto.response.RefreshTokenResponse(
+            Instant accessTokenExpiresAt,
+            Instant refreshTokenExpiresAt) {
+        return new RefreshTokenResponse(
                 accessToken,
                 refreshToken,
                 accessTokenExpiresAt,
