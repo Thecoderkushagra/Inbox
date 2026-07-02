@@ -2,6 +2,7 @@ package com.messaging.backend.messaging.mapper;
 
 import com.messaging.backend.messaging.dto.response.MessageResponse;
 import com.messaging.backend.messaging.entity.Message;
+import com.messaging.backend.websocket.dto.response.MessageSocketResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
@@ -37,6 +38,31 @@ public class MessageMapper {
                 .deletedAt(message.getDeletedAt())
                 .createdAt(message.getCreatedAt())
                 .build();
+    }
+
+    /**
+     * Maps a Message entity to a MessageSocketResponse DTO.
+     *
+     * @param message the Message entity
+     * @return the MessageSocketResponse DTO
+     */
+    public MessageSocketResponse toSocketResponse(Message message) {
+        if (message == null) {
+            return null;
+        }
+
+        return new MessageSocketResponse(
+                message.getId(),
+                message.getConversation().getId(),
+                message.getSender().getId(),
+                message.getContent(),
+                message.getMessageType(),
+                message.getStatus(),
+                message.isEdited(),
+                message.isDeleted(),
+                message.getCreatedAt(),
+                message.getEditedAt()
+        );
     }
 
     /**
