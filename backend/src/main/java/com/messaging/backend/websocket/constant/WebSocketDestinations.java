@@ -19,5 +19,6 @@ public final class WebSocketDestinations {
     
     // Broker Destinations (Outbound to Client)
     public static final String CHAT_TOPIC = "/topic/conversations."; // Appended with Conversation ID
+    public static final String PRESENCE_TOPIC = "/topic/presence";
     public static final String USER_ERROR_QUEUE = "/queue/errors";
 }

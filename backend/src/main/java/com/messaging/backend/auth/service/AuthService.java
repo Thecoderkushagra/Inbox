@@ -24,6 +24,7 @@ import com.messaging.backend.auth.security.AuthenticatedUser;
 import com.messaging.backend.common.config.JwtProperties;
 import com.messaging.backend.common.exception.BadRequestException;
 import com.messaging.backend.common.exception.ConflictException;
+import com.messaging.backend.presence.service.PresenceService;
 import com.messaging.backend.common.exception.ForbiddenException;
 import com.messaging.backend.common.exception.InternalServerException;
 import com.messaging.backend.common.exception.ResourceNotFoundException;
@@ -69,6 +70,7 @@ public class AuthService {
     private final AuthMapper authMapper;
     private final JwtTokenProvider jwtTokenProvider;
     private final JwtProperties jwtProperties;
+    private final PresenceService presenceService;
     
     private static final int TOKEN_ENTROPY_BYTES = 32;
 
@@ -79,7 +81,8 @@ public class AuthService {
                        PasswordEncoder passwordEncoder,
                        AuthMapper authMapper,
                        JwtTokenProvider jwtTokenProvider,
-                       JwtProperties jwtProperties) {
+                       JwtProperties jwtProperties,
+                       PresenceService presenceService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.tokenRepository = tokenRepository;
@@ -88,6 +91,7 @@ public class AuthService {
         this.authMapper = authMapper;
         this.jwtTokenProvider = jwtTokenProvider;
         this.jwtProperties = jwtProperties;
+        this.presenceService = presenceService;
     }
 
     /**
@@ -188,6 +192,8 @@ public class AuthService {
         newUser.addRole(userRole);
 
         User savedUser = userRepository.save(newUser);
+        
+        presenceService.initializePresence(savedUser);
 
         String rawToken = generateSecureToken();
         String hashedToken = hashToken(rawToken);
