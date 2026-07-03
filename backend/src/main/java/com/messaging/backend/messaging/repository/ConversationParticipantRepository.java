@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -76,4 +77,38 @@ public interface ConversationParticipantRepository extends JpaRepository<Convers
      * @return a Page of conversation participants matching the status
      */
     Page<ConversationParticipant> findByConversationIdAndStatus(UUID conversationId, ParticipantStatus status, Pageable pageable);
+
+    /**
+     * Counts the total number of participants in a conversation.
+     *
+     * @param conversationId the UUID of the conversation
+     * @return the number of participants
+     */
+    long countByConversationId(UUID conversationId);
+
+    /**
+     * Retrieves all members of a specific conversation (unpaginated).
+     *
+     * @param conversationId the UUID of the conversation
+     * @return a List of conversation participants
+     */
+    List<ConversationParticipant> findByConversationId(UUID conversationId);
+
+    /**
+     * Retrieves conversation members filtered by their role (unpaginated).
+     *
+     * @param conversationId the UUID of the conversation
+     * @param role the participant role to filter by
+     * @return a List of conversation participants matching the role
+     */
+    List<ConversationParticipant> findByConversationIdAndRole(UUID conversationId, ParticipantRole role);
+
+    /**
+     * Retrieves conversation members filtered by their status (unpaginated).
+     *
+     * @param conversationId the UUID of the conversation
+     * @param status the participant status to filter by
+     * @return a List of conversation participants matching the status
+     */
+    List<ConversationParticipant> findByConversationIdAndStatus(UUID conversationId, ParticipantStatus status);
 }

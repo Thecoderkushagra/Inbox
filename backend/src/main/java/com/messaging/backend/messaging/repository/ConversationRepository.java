@@ -5,10 +5,14 @@ import com.messaging.backend.messaging.enums.ConversationType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import com.messaging.backend.messaging.enums.ParticipantStatus;
 
 /**
  * Repository for managing Conversation entities.
@@ -44,4 +48,27 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
      * @return true if it exists, false otherwise
      */
     boolean existsById(UUID id);
+
+    /**
+     * Finds a conversation by its unique identifier and type.
+     *
+     * @param id the UUID of the conversation
+     * @param type the type of conversation
+     * @return an Optional containing the conversation if found, empty otherwise
+     */
+    Optional<Conversation> findByIdAndType(UUID id, ConversationType type);
+
+    /**
+     * Retrieves all conversations of a specific type where the user is a participant with a specific status.
+     *
+     * @param userId the UUID of the user
+     * @param status the status of the participant
+     * @param type the type of the conversation
+     * @return a List of matching conversations
+     */
+    @Query("SELECT c FROM Conversation c JOIN c.participants p WHERE p.user.id = :userId AND p.status = :status AND c.type = :type")
+    List<Conversation> findConversationsByParticipantUserAndStatusAndType(
+            @Param("userId") UUID userId,
+            @Param("status") ParticipantStatus status,
+            @Param("type") ConversationType type);
 }
