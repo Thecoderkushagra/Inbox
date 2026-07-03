@@ -16,5 +16,6 @@ public enum ErrorCode {
     RESOURCE_NOT_FOUND,
     CONFLICT,
     UNAUTHORIZED,
-    FORBIDDEN
+    FORBIDDEN,
+    TOO_MANY_REQUESTS
 }

@@ -10,6 +10,10 @@ import org.springframework.data.domain.Page;
 import com.messaging.backend.users.dto.request.UpdateUserProfileRequest;
 import com.messaging.backend.users.entity.UserProfile;
 import com.messaging.backend.users.enums.ProfileVisibility;
+import com.messaging.backend.cache.constants.CacheConstants;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.CacheEvict;
 import com.messaging.backend.users.repository.UserProfileRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +44,7 @@ public class UserProfileService {
      * @throws ConflictException if the user already has a profile
      */
     @Transactional
+    @CachePut(value = CacheConstants.USERS_CACHE, key = "'user:' + #user.id")
     public UserProfile createProfile(User user) {
         if (userProfileRepository.existsByUserId(user.getId())) {
             throw new ConflictException("Profile already exists for user ID: " + user.getId());
@@ -63,6 +68,7 @@ public class UserProfileService {
      * @throws ResourceNotFoundException if no profile exists for the user ID
      */
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConstants.USERS_CACHE, key = "'user:' + #userId")
     public UserProfile getProfileByUserId(UUID userId) {
         return userProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Profile not found for user ID: " + userId));
@@ -89,6 +95,7 @@ public class UserProfileService {
      * @throws BadRequestException if the display name is invalid after trimming
      */
     @Transactional
+    @CachePut(value = CacheConstants.USERS_CACHE, key = "'user:' + #userId")
     public UserProfile updateProfile(UUID userId, UpdateUserProfileRequest request) {
         UserProfile profile = getProfileByUserId(userId);
 

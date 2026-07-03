@@ -6,6 +6,8 @@ import com.messaging.backend.media.dto.response.MediaAttachmentResponse;
 import com.messaging.backend.media.entity.MediaAttachment;
 import com.messaging.backend.media.mapper.MediaMapper;
 import com.messaging.backend.media.service.MediaService;
+import com.messaging.backend.ratelimit.annotation.RateLimited;
+import com.messaging.backend.ratelimit.constants.RateLimitPolicy;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -38,6 +40,7 @@ public class MediaController {
     }
 
     @PostMapping("/messages/{messageId}")
+    @RateLimited(policy = RateLimitPolicy.MEDIA_UPLOAD)
     public ResponseEntity<SuccessResponse<MediaAttachmentResponse>> uploadAttachment(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @PathVariable UUID messageId,

@@ -12,6 +12,9 @@ import com.messaging.backend.readreceipts.entity.ReadReceipt;
 import com.messaging.backend.readreceipts.mapper.ReadReceiptMapper;
 import com.messaging.backend.readreceipts.repository.ReadReceiptRepository;
 import com.messaging.backend.websocket.constant.WebSocketDestinations;
+import com.messaging.backend.pubsub.publisher.RedisEventPublisher;
+import com.messaging.backend.pubsub.constants.PubSubChannels;
+import com.messaging.backend.pubsub.dto.RedisEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -35,19 +38,22 @@ public class ReadReceiptService {
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final ReadReceiptMapper readReceiptMapper;
+    private final RedisEventPublisher redisEventPublisher;
 
     public ReadReceiptService(ReadReceiptRepository readReceiptRepository,
                               MessageRepository messageRepository,
                               ConversationParticipantRepository conversationParticipantRepository,
                               UserRepository userRepository,
                               SimpMessagingTemplate messagingTemplate,
-                              ReadReceiptMapper readReceiptMapper) {
+                              ReadReceiptMapper readReceiptMapper,
+                              RedisEventPublisher redisEventPublisher) {
         this.readReceiptRepository = readReceiptRepository;
         this.messageRepository = messageRepository;
         this.conversationParticipantRepository = conversationParticipantRepository;
         this.userRepository = userRepository;
         this.messagingTemplate = messagingTemplate;
         this.readReceiptMapper = readReceiptMapper;
+        this.redisEventPublisher = redisEventPublisher;
     }
 
     @Transactional
@@ -200,6 +206,9 @@ public class ReadReceiptService {
         try {
             var response = readReceiptMapper.toSocketResponse(receipt);
             messagingTemplate.convertAndSend(WebSocketDestinations.READ_RECEIPT_TOPIC, response);
+            
+            redisEventPublisher.publish(PubSubChannels.READ_RECEIPT_CHANNEL, 
+                new RedisEvent(null, "READ_RECEIPT", null, response, null));
         } catch (Exception ex) {
             log.error("Failed to broadcast read receipt for messageId: {}", receipt.getMessage().getId(), ex);
         }

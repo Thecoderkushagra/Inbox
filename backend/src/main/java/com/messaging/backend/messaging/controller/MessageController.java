@@ -8,6 +8,8 @@ import com.messaging.backend.messaging.dto.response.MessageResponse;
 import com.messaging.backend.messaging.entity.Message;
 import com.messaging.backend.messaging.mapper.MessageMapper;
 import com.messaging.backend.messaging.service.MessageService;
+import com.messaging.backend.ratelimit.annotation.RateLimited;
+import com.messaging.backend.ratelimit.constants.RateLimitPolicy;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -49,6 +51,7 @@ public class MessageController {
      * @return 201 Created with the sent message
      */
     @PostMapping("/{conversationId}/messages")
+    @RateLimited(policy = RateLimitPolicy.SEND_MESSAGE)
     public ResponseEntity<SuccessResponse<MessageResponse>> sendMessage(
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
             @PathVariable UUID conversationId,

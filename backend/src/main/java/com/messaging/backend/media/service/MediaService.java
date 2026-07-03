@@ -14,6 +14,9 @@ import com.messaging.backend.websocket.constant.WebSocketDestinations;
 import com.messaging.backend.media.config.MediaProperties;
 import com.messaging.backend.media.mapper.MediaMapper;
 import com.messaging.backend.media.dto.response.MediaSocketResponse;
+import com.messaging.backend.pubsub.publisher.RedisEventPublisher;
+import com.messaging.backend.pubsub.constants.PubSubChannels;
+import com.messaging.backend.pubsub.dto.RedisEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -48,13 +51,15 @@ public class MediaService {
     private final SimpMessagingTemplate messagingTemplate;
     private final MediaMapper mediaMapper;
     private final MediaProperties mediaProperties;
+    private final RedisEventPublisher redisEventPublisher;
 
     public MediaService(MediaAttachmentRepository mediaAttachmentRepository,
                         MessageRepository messageRepository,
                         ConversationParticipantRepository conversationParticipantRepository,
                         MediaProperties mediaProperties,
                         SimpMessagingTemplate messagingTemplate,
-                        MediaMapper mediaMapper) {
+                        MediaMapper mediaMapper,
+                        RedisEventPublisher redisEventPublisher) {
         this.mediaAttachmentRepository = mediaAttachmentRepository;
         this.messageRepository = messageRepository;
         this.conversationParticipantRepository = conversationParticipantRepository;
@@ -62,6 +67,7 @@ public class MediaService {
         this.storageRoot = Paths.get(mediaProperties.getStoragePath()).toAbsolutePath().normalize();
         this.messagingTemplate = messagingTemplate;
         this.mediaMapper = mediaMapper;
+        this.redisEventPublisher = redisEventPublisher;
         
         try {
             Files.createDirectories(this.storageRoot);
@@ -162,6 +168,9 @@ public class MediaService {
         try {
             MediaSocketResponse dto = mediaMapper.toSocketResponse(attachment);
             messagingTemplate.convertAndSend(WebSocketDestinations.MEDIA_TOPIC, dto);
+            
+            redisEventPublisher.publish(PubSubChannels.MEDIA_CHANNEL, 
+                new RedisEvent(null, "MEDIA", null, dto, null));
         } catch (Exception ex) {
             log.error("Failed to broadcast media upload to WebSocket", ex);
         }

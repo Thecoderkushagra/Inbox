@@ -12,6 +12,8 @@ import com.messaging.backend.auth.dto.response.VerifyEmailResponse;
 import com.messaging.backend.auth.security.AuthenticatedUser;
 import com.messaging.backend.auth.service.AuthService;
 import com.messaging.backend.common.dto.response.SuccessResponse;
+import com.messaging.backend.ratelimit.annotation.RateLimited;
+import com.messaging.backend.ratelimit.constants.RateLimitPolicy;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -53,6 +55,7 @@ public class AuthController {
      * @return 201 Created with the user's non-sensitive details
      */
     @PostMapping("/register")
+    @RateLimited(policy = RateLimitPolicy.REGISTER)
     public ResponseEntity<SuccessResponse<RegisterResponse>> register(@Valid @RequestBody RegisterRequest request) {
         RegisterResponse response = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -66,6 +69,7 @@ public class AuthController {
      * @return 200 OK with the verified user details
      */
     @PostMapping("/verify-email")
+    @RateLimited(policy = RateLimitPolicy.OTP)
     public ResponseEntity<SuccessResponse<VerifyEmailResponse>> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
         VerifyEmailResponse response = authService.verifyEmail(request);
         return ResponseEntity.ok(SuccessResponse.success("Email verified successfully", response));
@@ -78,6 +82,7 @@ public class AuthController {
      * @return 200 OK with the JWTs and non-sensitive user details
      */
     @PostMapping("/login")
+    @RateLimited(policy = RateLimitPolicy.LOGIN)
     public ResponseEntity<SuccessResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);
         return ResponseEntity.ok(SuccessResponse.success("Login successful", response));
@@ -90,6 +95,7 @@ public class AuthController {
      * @return 200 OK with the newly generated JWTs
      */
     @PostMapping("/refresh")
+    @RateLimited(policy = RateLimitPolicy.LOGIN)
     public ResponseEntity<SuccessResponse<RefreshTokenResponse>> refresh(@Valid @RequestBody RefreshTokenRequest request) {
         RefreshTokenResponse response = authService.refresh(request);
         return ResponseEntity.ok(SuccessResponse.success("Session refreshed successfully", response));

@@ -24,6 +24,60 @@ spring:
     baseline-on-migrate: false
     encoding: UTF-8
 
+  task:
+    execution:
+      pool:
+        core-size: 10
+        max-size: 50
+        queue-capacity: 1000
+    scheduling:
+      pool:
+        size: 5
+
+  cache:
+    type: redis
+    
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 100
+          max-idle: 50
+          min-idle: 10
+          max-wait: 1000ms
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:messaging}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
+      idle-timeout: 300000
+      connection-timeout: 20000
+      max-lifetime: 1200000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: 1.0
+
 server:
   port: ${SERVER_PORT}
   shutdown: graceful
@@ -52,12 +106,6 @@ jwt:
   accessTokenExpiration: ${JWT_ACCESS_EXPIRATION}
   refreshTokenExpiration: ${JWT_REFRESH_EXPIRATION}
 
-db:
-  host: ${DB_HOST}
-  port: ${DB_PORT}
-  database: ${DB_NAME}
-  username: ${DB_USERNAME}
-  password: ${DB_PASSWORD}
 
 smtp:
   host: ${SMTP_HOST}

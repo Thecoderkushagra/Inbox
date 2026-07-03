@@ -19,6 +19,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.messaging.backend.cache.constants.CacheConstants;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 
 import java.time.Instant;
 import java.util.List;
@@ -107,6 +111,11 @@ public class FriendshipService {
     }
 
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = CacheConstants.FRIENDSHIPS_CACHE, key = "'friendship:' + #friendshipId"),
+        @CacheEvict(value = CacheConstants.FRIENDSHIPS_CACHE, key = "'friends:user:' + #result.requester.id"),
+        @CacheEvict(value = CacheConstants.FRIENDSHIPS_CACHE, key = "'friends:user:' + #result.addressee.id")
+    })
     public Friendship acceptFriendRequest(UUID friendshipId, UUID currentUserId) {
         Friendship friendship = getFriendship(friendshipId);
 
@@ -129,6 +138,7 @@ public class FriendshipService {
     }
 
     @Transactional
+    @CacheEvict(value = CacheConstants.FRIENDSHIPS_CACHE, key = "'friendship:' + #friendshipId")
     public Friendship rejectFriendRequest(UUID friendshipId, UUID currentUserId) {
         Friendship friendship = getFriendship(friendshipId);
 
@@ -149,6 +159,11 @@ public class FriendshipService {
     }
 
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = CacheConstants.FRIENDSHIPS_CACHE, key = "'friendship:' + #friendshipId"),
+        @CacheEvict(value = CacheConstants.FRIENDSHIPS_CACHE, key = "'friends:user:' + #result.requester.id"),
+        @CacheEvict(value = CacheConstants.FRIENDSHIPS_CACHE, key = "'friends:user:' + #result.addressee.id")
+    })
     public Friendship blockUser(UUID friendshipId, UUID currentUserId) {
         Friendship friendship = getFriendship(friendshipId);
 
@@ -177,6 +192,7 @@ public class FriendshipService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConstants.FRIENDSHIPS_CACHE, key = "'friendship:' + #friendshipId")
     public Friendship getFriendship(UUID friendshipId) {
         return friendshipRepository.findById(friendshipId)
                 .orElseThrow(() -> new ResourceNotFoundException("Friendship not found"));
@@ -193,6 +209,7 @@ public class FriendshipService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConstants.FRIENDSHIPS_CACHE, key = "'friends:user:' + #userId")
     public List<Friendship> getFriends(UUID userId) {
         return friendshipRepository.findFriendshipsByStatusAndUserId(FriendshipStatus.ACCEPTED, userId);
     }

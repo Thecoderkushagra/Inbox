@@ -26,6 +26,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import com.messaging.backend.websocket.constant.WebSocketDestinations;
+import com.messaging.backend.cache.constants.CacheConstants;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 
 @Service
 public class GroupService {
@@ -83,6 +87,7 @@ public class GroupService {
     }
 
     @Transactional
+    @CacheEvict(value = CacheConstants.GROUPS_CACHE, key = "'group:' + #conversationId")
     public Conversation renameGroup(UUID conversationId, UUID requesterId, String newName) {
         Conversation group = requireGroup(conversationId);
         requireAdmin(conversationId, requesterId);
@@ -97,6 +102,7 @@ public class GroupService {
     }
 
     @Transactional
+    @CacheEvict(value = CacheConstants.GROUPS_CACHE, key = "'group:' + #conversationId")
     public Conversation updateGroupDescription(UUID conversationId, UUID requesterId, String newDescription) {
         Conversation group = requireGroup(conversationId);
         requireAdmin(conversationId, requesterId);
@@ -108,6 +114,7 @@ public class GroupService {
     }
 
     @Transactional
+    @CacheEvict(value = CacheConstants.GROUPS_CACHE, key = "'group:' + #conversationId")
     public ConversationParticipant addMember(UUID conversationId, UUID requesterId, UUID targetUserId) {
         Conversation group = requireGroup(conversationId);
         requireAdmin(conversationId, requesterId);
@@ -134,6 +141,7 @@ public class GroupService {
     }
 
     @Transactional
+    @CacheEvict(value = CacheConstants.GROUPS_CACHE, key = "'group:' + #conversationId")
     public void removeMember(UUID conversationId, UUID requesterId, UUID targetUserId) {
         Conversation group = requireGroup(conversationId);
         requireAdmin(conversationId, requesterId);
@@ -145,6 +153,7 @@ public class GroupService {
     }
 
     @Transactional
+    @CacheEvict(value = CacheConstants.GROUPS_CACHE, key = "'group:' + #conversationId")
     public ConversationParticipant promoteAdmin(UUID conversationId, UUID requesterId, UUID targetUserId) {
         Conversation group = requireGroup(conversationId);
         requireAdmin(conversationId, requesterId);
@@ -162,6 +171,7 @@ public class GroupService {
     }
 
     @Transactional
+    @CacheEvict(value = CacheConstants.GROUPS_CACHE, key = "'group:' + #conversationId")
     public ConversationParticipant demoteAdmin(UUID conversationId, UUID requesterId, UUID targetUserId) {
         Conversation group = requireGroup(conversationId);
         requireAdmin(conversationId, requesterId);
@@ -184,6 +194,7 @@ public class GroupService {
     }
 
     @Transactional
+    @CacheEvict(value = CacheConstants.GROUPS_CACHE, key = "'group:' + #conversationId")
     public void leaveGroup(UUID conversationId, UUID currentUserId) {
         Conversation group = requireGroup(conversationId);
         ConversationParticipant participant = requireParticipant(conversationId, currentUserId);
@@ -214,6 +225,7 @@ public class GroupService {
     }
 
     @Transactional
+    @CacheEvict(value = CacheConstants.GROUPS_CACHE, key = "'group:' + #conversationId")
     public void deleteGroup(UUID conversationId, UUID requesterId) {
         Conversation group = requireGroup(conversationId);
         requireAdmin(conversationId, requesterId);
@@ -229,6 +241,7 @@ public class GroupService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConstants.GROUPS_CACHE, key = "'group:' + #groupId")
     public Conversation getGroup(UUID groupId, UUID currentUserId) {
         Conversation group = requireGroup(groupId);
         requireParticipant(groupId, currentUserId);
@@ -236,6 +249,7 @@ public class GroupService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConstants.GROUPS_CACHE, key = "'group:members:' + #groupId")
     public List<ConversationParticipant> getMembers(UUID groupId, UUID currentUserId) {
         requireGroup(groupId);
         requireParticipant(groupId, currentUserId);

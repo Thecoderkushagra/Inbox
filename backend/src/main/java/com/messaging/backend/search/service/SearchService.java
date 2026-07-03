@@ -21,6 +21,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.messaging.backend.cache.constants.CacheConstants;
+import org.springframework.cache.annotation.Cacheable;
 
 import java.util.UUID;
 
@@ -66,6 +68,7 @@ public class SearchService {
      * Searches for active users by username, email, or display name.
      * Excludes the authenticated user from results.
      */
+    @Cacheable(value = CacheConstants.SEARCH_CACHE, key = "'search:users:' + #currentUserId + ':' + #keyword + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     public Page<User> searchUsers(UUID currentUserId, String keyword, Pageable pageable) {
         String cleanKeyword = requireKeyword(keyword);
         return userRepository.searchUsersByKeywordAndStatus(currentUserId, cleanKeyword, UserStatus.ACTIVE, pageable);
@@ -87,6 +90,7 @@ public class SearchService {
     /**
      * Searches for conversations (DM or GROUP) the user is an active participant in by title.
      */
+    @Cacheable(value = CacheConstants.SEARCH_CACHE, key = "'search:conversations:' + #currentUserId + ':' + #keyword + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     public Page<Conversation> searchConversations(UUID currentUserId, String keyword, Pageable pageable) {
         String cleanKeyword = requireKeyword(keyword);
         return conversationRepository.searchConversationsByTitle(
@@ -96,6 +100,7 @@ public class SearchService {
     /**
      * Searches for GROUP conversations the user is an active participant in by title.
      */
+    @Cacheable(value = CacheConstants.SEARCH_CACHE, key = "'search:groups:' + #currentUserId + ':' + #keyword + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     public Page<Conversation> searchGroups(UUID currentUserId, String keyword, Pageable pageable) {
         String cleanKeyword = requireKeyword(keyword);
         return conversationRepository.searchConversationsByTypeAndTitle(

@@ -12,6 +12,10 @@ import com.messaging.backend.messaging.enums.ParticipantRole;
 import com.messaging.backend.messaging.enums.ParticipantStatus;
 import com.messaging.backend.messaging.repository.ConversationParticipantRepository;
 import com.messaging.backend.messaging.repository.ConversationRepository;
+import com.messaging.backend.cache.constants.CacheConstants;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -135,6 +139,7 @@ public class ConversationService {
      * @throws ResourceNotFoundException if the conversation does not exist
      */
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConstants.CONVERSATIONS_CACHE, key = "'conversation:' + #conversationId")
     public Conversation getConversation(UUID conversationId) {
         return conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Conversation not found"));
@@ -194,6 +199,7 @@ public class ConversationService {
      * @throws ConflictException if the new participant is already in the conversation
      */
     @Transactional
+    @CacheEvict(value = CacheConstants.CONVERSATIONS_CACHE, key = "'conversation:' + #conversationId")
     public ConversationParticipant addParticipant(UUID requesterId, UUID conversationId, User newParticipant) {
         Conversation conversation = getConversation(conversationId);
 
@@ -231,6 +237,7 @@ public class ConversationService {
      * @throws ConflictException if the target participant has already left
      */
     @Transactional
+    @CacheEvict(value = CacheConstants.CONVERSATIONS_CACHE, key = "'conversation:' + #conversationId")
     public void removeParticipant(UUID requesterId, UUID conversationId, UUID targetUserId) {
         getConversation(conversationId);
 
@@ -268,6 +275,7 @@ public class ConversationService {
      * @throws ConflictException if the user has already left
      */
     @Transactional
+    @CacheEvict(value = CacheConstants.CONVERSATIONS_CACHE, key = "'conversation:' + #conversationId")
     public void leaveConversation(UUID requesterId, UUID conversationId) {
         getConversation(conversationId);
 
@@ -304,6 +312,7 @@ public class ConversationService {
      * @throws BadRequestException if the conversation is DIRECT or the name is invalid
      */
     @Transactional
+    @CachePut(value = CacheConstants.CONVERSATIONS_CACHE, key = "'conversation:' + #conversationId")
     public Conversation updateConversation(UUID requesterId, UUID conversationId, String newName) {
         Conversation conversation = getConversation(conversationId);
 
@@ -341,6 +350,7 @@ public class ConversationService {
      * @throws ForbiddenException if the requester is not an OWNER
      */
     @Transactional
+    @CacheEvict(value = CacheConstants.CONVERSATIONS_CACHE, key = "'conversation:' + #conversationId")
     public void archiveConversation(UUID requesterId, UUID conversationId) {
         Conversation conversation = getConversation(conversationId);
 
@@ -367,6 +377,7 @@ public class ConversationService {
      * @throws ForbiddenException if the requester is not an OWNER
      */
     @Transactional
+    @CacheEvict(value = CacheConstants.CONVERSATIONS_CACHE, key = "'conversation:' + #conversationId")
     public void unarchiveConversation(UUID requesterId, UUID conversationId) {
         Conversation conversation = getConversation(conversationId);
 

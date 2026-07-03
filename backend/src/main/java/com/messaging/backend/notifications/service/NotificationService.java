@@ -15,6 +15,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.messaging.backend.cache.constants.CacheConstants;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
+import com.messaging.backend.pubsub.publisher.RedisEventPublisher;
+import com.messaging.backend.pubsub.constants.PubSubChannels;
+import com.messaging.backend.pubsub.dto.RedisEvent;
 
 import java.time.Instant;
 import java.util.List;
@@ -29,16 +35,20 @@ public class NotificationService {
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final NotificationMapper notificationMapper;
+    private final RedisEventPublisher redisEventPublisher;
 
     public NotificationService(NotificationRepository notificationRepository, UserRepository userRepository,
-                               SimpMessagingTemplate messagingTemplate, NotificationMapper notificationMapper) {
+                               SimpMessagingTemplate messagingTemplate, NotificationMapper notificationMapper,
+                               RedisEventPublisher redisEventPublisher) {
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
         this.messagingTemplate = messagingTemplate;
         this.notificationMapper = notificationMapper;
+        this.redisEventPublisher = redisEventPublisher;
     }
 
     @Transactional
+    @CacheEvict(value = CacheConstants.NOTIFICATION_CACHE, key = "'notification:unread-count:' + #recipientId")
     public Notification createNotification(UUID recipientId, NotificationType type, String title, String message, UUID referenceId) {
         User recipient = userRepository.findById(recipientId)
                 .orElseThrow(() -> new ResourceNotFoundException("Recipient not found"));
@@ -53,6 +63,9 @@ public class NotificationService {
                     WebSocketDestinations.NOTIFICATION_QUEUE,
                     response
             );
+            
+            redisEventPublisher.publish(PubSubChannels.NOTIFICATION_CHANNEL, 
+                new RedisEvent(null, "NOTIFICATION", null, response, null));
         } catch (Exception e) {
             log.error("Failed to broadcast notification to user: {}", recipientId, e);
         }
@@ -71,11 +84,13 @@ public class NotificationService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConstants.NOTIFICATION_CACHE, key = "'notification:unread-count:' + #recipientId")
     public long getUnreadCount(UUID recipientId) {
         return notificationRepository.countByRecipientIdAndRead(recipientId, false);
     }
 
     @Transactional
+    @CacheEvict(value = CacheConstants.NOTIFICATION_CACHE, key = "'notification:unread-count:' + #currentUserId")
     public Notification markAsRead(UUID notificationId, UUID currentUserId) {
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
@@ -94,6 +109,7 @@ public class NotificationService {
     }
 
     @Transactional
+    @CacheEvict(value = CacheConstants.NOTIFICATION_CACHE, key = "'notification:unread-count:' + #currentUserId")
     public void markAllAsRead(UUID currentUserId) {
         List<Notification> unreadNotifications = notificationRepository.findByRecipientIdAndReadOrderByCreatedAtDesc(currentUserId, false);
 

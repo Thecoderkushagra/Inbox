@@ -8,6 +8,11 @@ import com.messaging.backend.presence.repository.UserPresenceRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.messaging.backend.pubsub.publisher.RedisEventPublisher;
+import com.messaging.backend.pubsub.constants.PubSubChannels;
+import com.messaging.backend.pubsub.dto.RedisEvent;
+import com.messaging.backend.presence.mapper.PresenceMapper;
+
 import java.util.UUID;
 
 /**
@@ -17,9 +22,15 @@ import java.util.UUID;
 public class PresenceService {
 
     private final UserPresenceRepository userPresenceRepository;
+    private final RedisEventPublisher redisEventPublisher;
+    private final PresenceMapper presenceMapper;
 
-    public PresenceService(UserPresenceRepository userPresenceRepository) {
+    public PresenceService(UserPresenceRepository userPresenceRepository,
+                           RedisEventPublisher redisEventPublisher,
+                           PresenceMapper presenceMapper) {
         this.userPresenceRepository = userPresenceRepository;
+        this.redisEventPublisher = redisEventPublisher;
+        this.presenceMapper = presenceMapper;
     }
 
     /**
@@ -48,6 +59,7 @@ public class PresenceService {
             return;
         }
         presence.updateStatus(PresenceStatus.ONLINE);
+        publishPresenceEvent(presence);
     }
 
     /**
@@ -61,6 +73,7 @@ public class PresenceService {
             return;
         }
         presence.updateStatus(PresenceStatus.AWAY);
+        publishPresenceEvent(presence);
     }
 
     /**
@@ -74,6 +87,7 @@ public class PresenceService {
             return;
         }
         presence.updateStatus(PresenceStatus.OFFLINE);
+        publishPresenceEvent(presence);
     }
 
     /**
@@ -92,5 +106,15 @@ public class PresenceService {
     @Transactional(readOnly = true)
     public boolean isOnline(UUID userId) {
         return getPresence(userId).getStatus() == PresenceStatus.ONLINE;
+    }
+
+    private void publishPresenceEvent(UserPresence presence) {
+        try {
+            var response = presenceMapper.toSocketResponse(presence);
+            redisEventPublisher.publish(PubSubChannels.PRESENCE_CHANNEL, 
+                new RedisEvent(null, "PRESENCE", null, response, null));
+        } catch (Exception e) {
+            // Log and ignore to prevent transaction rollback
+        }
     }
 }

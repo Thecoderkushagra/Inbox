@@ -19,6 +19,10 @@ import com.messaging.backend.notifications.enums.NotificationType;
 import com.messaging.backend.notifications.service.NotificationService;
 import com.messaging.backend.presence.service.PresenceService;
 import com.messaging.backend.readreceipts.service.ReadReceiptService;
+import com.messaging.backend.pubsub.publisher.RedisEventPublisher;
+import com.messaging.backend.pubsub.constants.PubSubChannels;
+import com.messaging.backend.pubsub.dto.RedisEvent;
+import com.messaging.backend.websocket.dto.response.MessageSocketResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -41,11 +45,12 @@ public class MessageService {
     private final MediaService mediaService;
     private final MessageMapper messageMapper;
     private final ReadReceiptService readReceiptService;
+    private final RedisEventPublisher redisEventPublisher;
 
     public MessageService(MessageRepository messageRepository, ConversationService conversationService,
                           NotificationService notificationService, PresenceService presenceService,
                           MediaService mediaService, MessageMapper messageMapper,
-                          ReadReceiptService readReceiptService) {
+                          ReadReceiptService readReceiptService, RedisEventPublisher redisEventPublisher) {
         this.messageRepository = messageRepository;
         this.conversationService = conversationService;
         this.notificationService = notificationService;
@@ -53,6 +58,7 @@ public class MessageService {
         this.mediaService = mediaService;
         this.messageMapper = messageMapper;
         this.readReceiptService = readReceiptService;
+        this.redisEventPublisher = redisEventPublisher;
     }
 
     /**
@@ -107,6 +113,10 @@ public class MessageService {
                 }
             }
         }
+
+        MessageSocketResponse response = messageMapper.toSocketResponse(savedMessage);
+        redisEventPublisher.publish(PubSubChannels.CHAT_CHANNEL, 
+                new RedisEvent(null, "CHAT", null, response, null));
 
         return savedMessage;
     }
