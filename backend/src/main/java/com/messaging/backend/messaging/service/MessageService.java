@@ -11,6 +11,10 @@ import com.messaging.backend.messaging.entity.ConversationParticipant;
 import com.messaging.backend.messaging.entity.Message;
 import com.messaging.backend.messaging.enums.ParticipantStatus;
 import com.messaging.backend.messaging.repository.MessageRepository;
+import com.messaging.backend.messaging.dto.response.MessageResponse;
+import com.messaging.backend.messaging.mapper.MessageMapper;
+import com.messaging.backend.media.entity.MediaAttachment;
+import com.messaging.backend.media.service.MediaService;
 import com.messaging.backend.notifications.enums.NotificationType;
 import com.messaging.backend.notifications.service.NotificationService;
 import com.messaging.backend.presence.service.PresenceService;
@@ -20,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -32,13 +37,18 @@ public class MessageService {
     private final ConversationService conversationService;
     private final NotificationService notificationService;
     private final PresenceService presenceService;
+    private final MediaService mediaService;
+    private final MessageMapper messageMapper;
 
     public MessageService(MessageRepository messageRepository, ConversationService conversationService,
-                          NotificationService notificationService, PresenceService presenceService) {
+                          NotificationService notificationService, PresenceService presenceService,
+                          MediaService mediaService, MessageMapper messageMapper) {
         this.messageRepository = messageRepository;
         this.conversationService = conversationService;
         this.notificationService = notificationService;
         this.presenceService = presenceService;
+        this.mediaService = mediaService;
+        this.messageMapper = messageMapper;
     }
 
     /**
@@ -104,10 +114,15 @@ public class MessageService {
      * @return a page of non-deleted messages
      */
     @Transactional(readOnly = true)
-    public Page<Message> getConversationMessages(UUID requesterId, UUID conversationId, Pageable pageable) {
+    public Page<MessageResponse> getConversationMessages(UUID requesterId, UUID conversationId, Pageable pageable) {
         conversationService.getConversationForUser(conversationId, requesterId);
         
-        return messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId, pageable);
+        Page<Message> messages = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId, pageable);
+        List<UUID> messageIds = messages.stream().map(Message::getId).toList();
+        
+        java.util.Map<UUID, List<MediaAttachment>> attachments = mediaService.getAttachmentsForMessages(requesterId, conversationId, messageIds);
+        
+        return messageMapper.toResponsePage(messages, attachments);
     }
 
     /**
@@ -132,6 +147,13 @@ public class MessageService {
         }
 
         return message;
+    }
+
+    @Transactional(readOnly = true)
+    public MessageResponse getMessageResponse(UUID requesterId, UUID conversationId, UUID messageId) {
+        Message message = getMessage(requesterId, conversationId, messageId);
+        java.util.Map<UUID, List<MediaAttachment>> attachments = mediaService.getAttachmentsForMessages(requesterId, conversationId, List.of(messageId));
+        return messageMapper.toResponse(message, attachments.get(messageId));
     }
 
     /**

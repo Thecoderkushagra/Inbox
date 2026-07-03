@@ -2,9 +2,11 @@ package com.messaging.backend.messaging.dto.response;
 
 import com.messaging.backend.messaging.enums.MessageStatus;
 import com.messaging.backend.messaging.enums.MessageType;
+import com.messaging.backend.media.dto.response.MediaAttachmentResponse;
 import lombok.Builder;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -22,6 +24,7 @@ public record MessageResponse(
         boolean deleted,
         Instant editedAt,
         Instant deletedAt,
-        Instant createdAt
+        Instant createdAt,
+        List<MediaAttachmentResponse> attachments
 ) {
 }

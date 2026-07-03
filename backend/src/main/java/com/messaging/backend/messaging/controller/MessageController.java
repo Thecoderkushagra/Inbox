@@ -55,7 +55,7 @@ public class MessageController {
             @Valid @RequestBody SendMessageRequest request) {
 
         Message message = messageService.sendMessage(authenticatedUser.getId(), conversationId, request.content());
-        MessageResponse response = messageMapper.toResponse(message);
+        MessageResponse response = messageMapper.toResponse(message, null);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(SuccessResponse.success("Message sent successfully", response));
@@ -75,10 +75,8 @@ public class MessageController {
             @PathVariable UUID conversationId,
             @Valid PaginationRequest paginationRequest) {
 
-        Page<Message> messagesPage = messageService.getConversationMessages(
+        Page<MessageResponse> responsePage = messageService.getConversationMessages(
                 authenticatedUser.getId(), conversationId, paginationRequest.toPageable());
-        
-        Page<MessageResponse> responsePage = messageMapper.toResponsePage(messagesPage);
 
         return ResponseEntity.ok(SuccessResponse.success("Messages retrieved successfully", responsePage));
     }
@@ -97,8 +95,7 @@ public class MessageController {
             @PathVariable UUID conversationId,
             @PathVariable UUID messageId) {
 
-        Message message = messageService.getMessage(authenticatedUser.getId(), conversationId, messageId);
-        MessageResponse response = messageMapper.toResponse(message);
+        MessageResponse response = messageService.getMessageResponse(authenticatedUser.getId(), conversationId, messageId);
 
         return ResponseEntity.ok(SuccessResponse.success("Message retrieved successfully", response));
     }
@@ -120,7 +117,7 @@ public class MessageController {
             @Valid @RequestBody UpdateMessageRequest request) {
 
         Message message = messageService.updateMessage(authenticatedUser.getId(), conversationId, messageId, request);
-        MessageResponse response = messageMapper.toResponse(message);
+        MessageResponse response = messageMapper.toResponse(message, null);
 
         return ResponseEntity.ok(SuccessResponse.success("Message updated successfully", response));
     }

@@ -25,4 +25,5 @@ public final class WebSocketDestinations {
     public static final String NOTIFICATION_TOPIC = "/topic/notifications";
     public static final String NOTIFICATION_QUEUE = "/queue/notifications";
     public static final String USER_ERROR_QUEUE = "/queue/errors";
+    public static final String MEDIA_TOPIC = "/topic/media";
 }

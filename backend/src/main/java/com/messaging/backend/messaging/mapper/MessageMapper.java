@@ -2,11 +2,17 @@ package com.messaging.backend.messaging.mapper;
 
 import com.messaging.backend.messaging.dto.response.MessageResponse;
 import com.messaging.backend.messaging.entity.Message;
+import com.messaging.backend.media.dto.response.MediaAttachmentResponse;
+import com.messaging.backend.media.mapper.MediaMapper;
+import com.messaging.backend.media.entity.MediaAttachment;
 import com.messaging.backend.websocket.dto.response.MessageSocketResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Mapper for Message entity to MessageResponse DTO.
@@ -14,16 +20,26 @@ import java.util.List;
 @Component
 public class MessageMapper {
 
+    private final MediaMapper mediaMapper;
+
+    public MessageMapper(MediaMapper mediaMapper) {
+        this.mediaMapper = mediaMapper;
+    }
+
     /**
      * Maps a Message entity to a MessageResponse DTO.
      *
      * @param message the Message entity
      * @return the MessageResponse DTO
      */
-    public MessageResponse toResponse(Message message) {
+    public MessageResponse toResponse(Message message, List<MediaAttachment> attachments) {
         if (message == null) {
             return null;
         }
+
+        List<MediaAttachmentResponse> attachmentResponses = mediaMapper.toResponseList(
+                attachments != null ? attachments : Collections.emptyList()
+        );
 
         return MessageResponse.builder()
                 .id(message.getId())
@@ -37,6 +53,7 @@ public class MessageMapper {
                 .editedAt(message.getEditedAt())
                 .deletedAt(message.getDeletedAt())
                 .createdAt(message.getCreatedAt())
+                .attachments(attachmentResponses)
                 .build();
     }
 
@@ -71,13 +88,13 @@ public class MessageMapper {
      * @param messages the list of Message entities
      * @return the list of MessageResponse DTOs
      */
-    public List<MessageResponse> toResponseList(List<Message> messages) {
+    public List<MessageResponse> toResponseList(List<Message> messages, Map<UUID, List<MediaAttachment>> attachmentsMap) {
         if (messages == null) {
             return List.of();
         }
 
         return messages.stream()
-                .map(this::toResponse)
+                .map(msg -> toResponse(msg, attachmentsMap != null ? attachmentsMap.get(msg.getId()) : null))
                 .toList();
     }
 
@@ -87,11 +104,11 @@ public class MessageMapper {
      * @param messages the page of Message entities
      * @return the page of MessageResponse DTOs
      */
-    public Page<MessageResponse> toResponsePage(Page<Message> messages) {
+    public Page<MessageResponse> toResponsePage(Page<Message> messages, Map<UUID, List<MediaAttachment>> attachmentsMap) {
         if (messages == null) {
             return Page.empty();
         }
 
-        return messages.map(this::toResponse);
+        return messages.map(msg -> toResponse(msg, attachmentsMap != null ? attachmentsMap.get(msg.getId()) : null));
     }
 }
