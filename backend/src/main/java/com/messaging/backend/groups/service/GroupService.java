@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.UUID;
 
 import com.messaging.backend.groups.mapper.GroupMapper;
+import com.messaging.backend.notifications.enums.NotificationType;
+import com.messaging.backend.notifications.service.NotificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -35,17 +37,20 @@ public class GroupService {
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final GroupMapper groupMapper;
+    private final NotificationService notificationService;
 
     public GroupService(ConversationRepository conversationRepository,
                         ConversationParticipantRepository conversationParticipantRepository,
                         UserRepository userRepository,
                         SimpMessagingTemplate messagingTemplate,
-                        GroupMapper groupMapper) {
+                        GroupMapper groupMapper,
+                        NotificationService notificationService) {
         this.conversationRepository = conversationRepository;
         this.conversationParticipantRepository = conversationParticipantRepository;
         this.userRepository = userRepository;
         this.messagingTemplate = messagingTemplate;
         this.groupMapper = groupMapper;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -84,6 +89,9 @@ public class GroupService {
 
         group.setTitle(newName);
         group = conversationRepository.save(group);
+        
+        notifyGroupRenamed(group.getId(), requesterId);
+        
         broadcastGroupUpdate(group);
         return group;
     }
@@ -120,6 +128,7 @@ public class GroupService {
                 .build();
 
         participant = conversationParticipantRepository.save(participant);
+        notificationService.createNotification(targetUserId, NotificationType.GROUP_MEMBER_ADDED, "Added to Group", "You were added to a group.", group.getId());
         broadcastGroupUpdate(group);
         return participant;
     }
@@ -130,6 +139,7 @@ public class GroupService {
         requireAdmin(conversationId, requesterId);
         ConversationParticipant targetParticipant = requireParticipant(conversationId, targetUserId);
 
+        notificationService.createNotification(targetUserId, NotificationType.GROUP_MEMBER_REMOVED, "Removed from Group", "You were removed from a group.", group.getId());
         conversationParticipantRepository.delete(targetParticipant);
         broadcastGroupUpdate(group);
     }
@@ -146,6 +156,7 @@ public class GroupService {
 
         targetParticipant.setRole(ParticipantRole.ADMIN);
         targetParticipant = conversationParticipantRepository.save(targetParticipant);
+        notificationService.createNotification(targetUserId, NotificationType.GROUP_PROMOTED_TO_ADMIN, "Promoted", "You have been promoted to group admin.", group.getId());
         broadcastGroupUpdate(group);
         return targetParticipant;
     }
@@ -167,6 +178,7 @@ public class GroupService {
 
         targetParticipant.setRole(ParticipantRole.MEMBER);
         targetParticipant = conversationParticipantRepository.save(targetParticipant);
+        notificationService.createNotification(targetUserId, NotificationType.GROUP_DEMOTED_FROM_ADMIN, "Role Updated", "You are no longer a group admin.", group.getId());
         broadcastGroupUpdate(group);
         return targetParticipant;
     }
@@ -263,6 +275,15 @@ public class GroupService {
             messagingTemplate.convertAndSend(WebSocketDestinations.GROUP_TOPIC, response);
         } catch (Exception e) {
             log.error("Failed to broadcast group update for group ID: {}", group.getId(), e);
+        }
+    }
+
+    private void notifyGroupRenamed(UUID conversationId, UUID actorId) {
+        List<ConversationParticipant> participants = conversationParticipantRepository.findByConversationIdAndStatus(conversationId, ParticipantStatus.ACTIVE);
+        for (ConversationParticipant participant : participants) {
+            if (!participant.getUser().getId().equals(actorId)) {
+                notificationService.createNotification(participant.getUser().getId(), NotificationType.GROUP_RENAMED, "Group Updated", "The group name has been changed.", conversationId);
+            }
         }
     }
 }

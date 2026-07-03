@@ -11,6 +11,8 @@ import com.messaging.backend.friendships.entity.Friendship;
 import com.messaging.backend.friendships.enums.FriendshipStatus;
 import com.messaging.backend.friendships.mapper.FriendshipMapper;
 import com.messaging.backend.friendships.repository.FriendshipRepository;
+import com.messaging.backend.notifications.enums.NotificationType;
+import com.messaging.backend.notifications.service.NotificationService;
 import com.messaging.backend.websocket.constant.WebSocketDestinations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,13 +37,16 @@ public class FriendshipService {
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final FriendshipMapper friendshipMapper;
+    private final NotificationService notificationService;
 
     public FriendshipService(FriendshipRepository friendshipRepository, UserRepository userRepository,
-                             SimpMessagingTemplate messagingTemplate, FriendshipMapper friendshipMapper) {
+                             SimpMessagingTemplate messagingTemplate, FriendshipMapper friendshipMapper,
+                             NotificationService notificationService) {
         this.friendshipRepository = friendshipRepository;
         this.userRepository = userRepository;
         this.messagingTemplate = messagingTemplate;
         this.friendshipMapper = friendshipMapper;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -74,6 +79,8 @@ public class FriendshipService {
                 .build();
 
         Friendship saved = friendshipRepository.save(friendship);
+        notificationService.createNotification(addresseeId, NotificationType.FRIEND_REQUEST_RECEIVED, 
+                                               "Friend Request", "You have received a new friend request.", saved.getId());
         broadcastFriendshipUpdate(saved);
         return saved;
     }
@@ -115,6 +122,8 @@ public class FriendshipService {
         friendship.setRespondedAt(Instant.now());
 
         Friendship saved = friendshipRepository.save(friendship);
+        notificationService.createNotification(friendship.getRequester().getId(), NotificationType.FRIEND_REQUEST_ACCEPTED, 
+                                               "Friend Request Accepted", "Your friend request has been accepted.", saved.getId());
         broadcastFriendshipUpdate(saved);
         return saved;
     }

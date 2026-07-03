@@ -9,7 +9,11 @@ import com.messaging.backend.messaging.dto.request.UpdateMessageRequest;
 import com.messaging.backend.messaging.entity.Conversation;
 import com.messaging.backend.messaging.entity.ConversationParticipant;
 import com.messaging.backend.messaging.entity.Message;
+import com.messaging.backend.messaging.enums.ParticipantStatus;
 import com.messaging.backend.messaging.repository.MessageRepository;
+import com.messaging.backend.notifications.enums.NotificationType;
+import com.messaging.backend.notifications.service.NotificationService;
+import com.messaging.backend.presence.service.PresenceService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -26,10 +30,15 @@ public class MessageService {
 
     private final MessageRepository messageRepository;
     private final ConversationService conversationService;
+    private final NotificationService notificationService;
+    private final PresenceService presenceService;
 
-    public MessageService(MessageRepository messageRepository, ConversationService conversationService) {
+    public MessageService(MessageRepository messageRepository, ConversationService conversationService,
+                          NotificationService notificationService, PresenceService presenceService) {
         this.messageRepository = messageRepository;
         this.conversationService = conversationService;
+        this.notificationService = notificationService;
+        this.presenceService = presenceService;
     }
 
     /**
@@ -67,7 +76,23 @@ public class MessageService {
                 .build();
         // Note: Message builder sets messageType = TEXT and status = SENT by default.
 
-        return messageRepository.save(message);
+        Message savedMessage = messageRepository.save(message);
+
+        for (ConversationParticipant participant : conversation.getParticipants()) {
+            if (participant.getStatus() == ParticipantStatus.ACTIVE && !participant.getUser().getId().equals(senderId)) {
+                if (!presenceService.isOnline(participant.getUser().getId())) {
+                    notificationService.createNotification(
+                            participant.getUser().getId(),
+                            NotificationType.NEW_MESSAGE,
+                            "New Message",
+                            "You have received a new message.",
+                            savedMessage.getId()
+                    );
+                }
+            }
+        }
+
+        return savedMessage;
     }
 
     /**

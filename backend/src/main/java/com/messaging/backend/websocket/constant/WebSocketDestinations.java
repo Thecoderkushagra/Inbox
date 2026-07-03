@@ -22,5 +22,7 @@ public final class WebSocketDestinations {
     public static final String PRESENCE_TOPIC = "/topic/presence";
     public static final String FRIENDSHIP_TOPIC = "/topic/friendships";
     public static final String GROUP_TOPIC = "/topic/groups";
+    public static final String NOTIFICATION_TOPIC = "/topic/notifications";
+    public static final String NOTIFICATION_QUEUE = "/queue/notifications";
     public static final String USER_ERROR_QUEUE = "/queue/errors";
 }
