@@ -97,4 +97,17 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
      * @return the total number of messages
      */
     long countByConversationId(UUID conversationId);
+
+    /**
+     * Searches active (non-deleted) messages within a specific conversation by keyword,
+     * ordered from newest to oldest.
+     * Used for Message Search.
+     *
+     * @param conversationId the ID of the conversation
+     * @param content        the keyword to search for
+     * @param pageable       the pagination information
+     * @return a page of matching messages
+     */
+    Page<Message> findByConversationIdAndDeletedFalseAndContentContainingIgnoreCaseOrderByCreatedAtDesc(
+            UUID conversationId, String content, Pageable pageable);
 }

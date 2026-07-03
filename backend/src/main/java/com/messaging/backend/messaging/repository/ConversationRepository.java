@@ -71,4 +71,27 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
             @Param("userId") UUID userId,
             @Param("status") ParticipantStatus status,
             @Param("type") ConversationType type);
+
+    /**
+     * Searches for conversations by title, filtered by type and user participation status.
+     * Used for Group Search and specific Conversation Type searches.
+     */
+    @Query("SELECT c FROM Conversation c JOIN c.participants p WHERE p.user.id = :userId AND p.status = :status AND c.type = :type AND LOWER(c.title) LIKE LOWER(CONCAT('%', :query, '%'))")
+    Page<Conversation> searchConversationsByTypeAndTitle(
+            @Param("userId") UUID userId,
+            @Param("status") ParticipantStatus status,
+            @Param("type") ConversationType type,
+            @Param("query") String query,
+            Pageable pageable);
+
+    /**
+     * Searches for conversations by title across all conversation types a user is participating in.
+     * Used for Global Conversation Search.
+     */
+    @Query("SELECT c FROM Conversation c JOIN c.participants p WHERE p.user.id = :userId AND p.status = :status AND LOWER(c.title) LIKE LOWER(CONCAT('%', :query, '%'))")
+    Page<Conversation> searchConversationsByTitle(
+            @Param("userId") UUID userId,
+            @Param("status") ParticipantStatus status,
+            @Param("query") String query,
+            Pageable pageable);
 }

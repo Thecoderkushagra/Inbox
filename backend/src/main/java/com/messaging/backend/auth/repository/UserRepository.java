@@ -41,4 +41,20 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     List<User> findAllByStatus(UserStatus status);
 
     Page<User> findAllByStatus(UserStatus status, Pageable pageable);
+
+    /**
+     * Searches users by username, display name, or email, filtering by status.
+     * Required for User Search to exclude inactive/deleted users and support partial matching.
+     */
+    @org.springframework.data.jpa.repository.Query(
+        "SELECT u FROM User u LEFT JOIN u.profile p WHERE u.status = :status AND u.id != :currentUserId AND " +
+        "(LOWER(u.username) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+        "LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+        "LOWER(p.displayName) LIKE LOWER(CONCAT('%', :query, '%')))"
+    )
+    Page<User> searchUsersByKeywordAndStatus(
+            @org.springframework.data.repository.query.Param("currentUserId") UUID currentUserId,
+            @org.springframework.data.repository.query.Param("query") String query, 
+            @org.springframework.data.repository.query.Param("status") UserStatus status, 
+            Pageable pageable);
 }

@@ -18,6 +18,7 @@ import com.messaging.backend.media.service.MediaService;
 import com.messaging.backend.notifications.enums.NotificationType;
 import com.messaging.backend.notifications.service.NotificationService;
 import com.messaging.backend.presence.service.PresenceService;
+import com.messaging.backend.readreceipts.service.ReadReceiptService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -39,16 +40,19 @@ public class MessageService {
     private final PresenceService presenceService;
     private final MediaService mediaService;
     private final MessageMapper messageMapper;
+    private final ReadReceiptService readReceiptService;
 
     public MessageService(MessageRepository messageRepository, ConversationService conversationService,
                           NotificationService notificationService, PresenceService presenceService,
-                          MediaService mediaService, MessageMapper messageMapper) {
+                          MediaService mediaService, MessageMapper messageMapper,
+                          ReadReceiptService readReceiptService) {
         this.messageRepository = messageRepository;
         this.conversationService = conversationService;
         this.notificationService = notificationService;
         this.presenceService = presenceService;
         this.mediaService = mediaService;
         this.messageMapper = messageMapper;
+        this.readReceiptService = readReceiptService;
     }
 
     /**
@@ -98,6 +102,8 @@ public class MessageService {
                             "You have received a new message.",
                             savedMessage.getId()
                     );
+                } else {
+                    readReceiptService.markDelivered(savedMessage.getId(), participant.getUser().getId());
                 }
             }
         }
