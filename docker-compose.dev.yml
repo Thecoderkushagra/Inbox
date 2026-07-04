@@ -3,7 +3,7 @@ services:
     image: postgres:16-alpine
     container_name: messaging-postgres-dev
     environment:
-      POSTGRES_USER: ${DB_USER:-messaging_user}
+      POSTGRES_USER: ${DB_USERNAME:-messaging_user}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-messaging_password}
       POSTGRES_DB: ${DB_NAME:-messaging_db}
     ports:
@@ -24,7 +24,7 @@ services:
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=${DB_NAME:-messaging_db}
-      - DB_USER=${DB_USER:-messaging_user}
+      - DB_USERNAME=${DB_USERNAME:-messaging_user}
       - DB_PASSWORD=${DB_PASSWORD:-messaging_password}
       - SPRING_PROFILES_ACTIVE=dev
     ports:
