@@ -1,16 +1,16 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: messaging-postgres-prod
+    container_name: postgres-inbox-prod
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     volumes:
-      - postgres_data_prod:/var/lib/postgresql/data
+      - postgres-data-inbox-prod:/var/lib/postgresql/data
     networks:
-      - messaging_prod_network
+      - internal-net-inbox-prod
     healthcheck:
       test: ["CMD-SHELL", "echo 'postgres healthcheck placeholder'"]
       interval: 30s
@@ -21,8 +21,8 @@ services:
     # build:
     #   context: .
     #   dockerfile: docker/backend/Dockerfile.prod
-    image: messaging-backend-prod
-    container_name: messaging-backend-prod
+    image: backend-inbox-prod
+    container_name: backend-inbox-prod
     restart: unless-stopped
     environment:
       - DB_HOST=postgres
@@ -34,7 +34,7 @@ services:
     depends_on:
       - postgres
     networks:
-      - messaging_prod_network
+      - internal-net-inbox-prod
     healthcheck:
       test: ["CMD-SHELL", "echo 'backend healthcheck placeholder'"]
       interval: 30s
@@ -45,11 +45,11 @@ services:
     # build:
     #   context: .
     #   dockerfile: docker/frontend/Dockerfile.prod
-    image: messaging-frontend-prod
-    container_name: messaging-frontend-prod
+    image: frontend-inbox-prod
+    container_name: frontend-inbox-prod
     restart: unless-stopped
     networks:
-      - messaging_prod_network
+      - internal-net-inbox-prod
     healthcheck:
       test: ["CMD-SHELL", "echo 'frontend healthcheck placeholder'"]
       interval: 30s
@@ -58,18 +58,18 @@ services:
 
   nginx:
     image: nginx:alpine
-    container_name: messaging-nginx-prod
+    container_name: nginx-inbox-prod
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - nginx_config_prod:/etc/nginx/conf.d
+      - nginx-config-inbox-prod:/etc/nginx/conf.d
     depends_on:
       - backend
       - frontend
     networks:
-      - messaging_prod_network
+      - internal-net-inbox-prod
     healthcheck:
       test: ["CMD-SHELL", "echo 'nginx healthcheck placeholder'"]
       interval: 30s
@@ -77,9 +77,12 @@ services:
       retries: 3
 
 networks:
-  messaging_prod_network:
+  internal-net-inbox-prod:
+    name: internal-net-inbox-prod
     driver: bridge
 
 volumes:
-  postgres_data_prod:
-  nginx_config_prod:
+  postgres-data-inbox-prod:
+    name: postgres-data-inbox-prod
+  nginx-config-inbox-prod:
+    name: nginx-config-inbox-prod

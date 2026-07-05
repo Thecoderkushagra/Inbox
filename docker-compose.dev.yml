@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: messaging-postgres-dev
+    container_name: postgres-inbox-dev
     environment:
       POSTGRES_USER: ${DB_USERNAME:-messaging_user}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-messaging_password}
@@ -9,17 +9,17 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data_dev:/var/lib/postgresql/data
+      - postgres-data-inbox-dev:/var/lib/postgresql/data
     networks:
-      - messaging_dev_network
+      - internal-net-inbox-dev
 
   backend:
     # Build context to be uncommented when Dockerfiles are created
     # build:
     #   context: .
     #   dockerfile: docker/backend/Dockerfile.dev
-    image: messaging-backend-dev
-    container_name: messaging-backend-dev
+    image: backend-inbox-dev
+    container_name: backend-inbox-dev
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -34,25 +34,27 @@ services:
     depends_on:
       - postgres
     networks:
-      - messaging_dev_network
+      - internal-net-inbox-dev
 
   frontend:
     # build:
     #   context: .
     #   dockerfile: docker/frontend/Dockerfile.dev
-    image: messaging-frontend-dev
-    container_name: messaging-frontend-dev
+    image: frontend-inbox-dev
+    container_name: frontend-inbox-dev
     ports:
       - "5173:5173"
     volumes:
       - ./frontend:/app
       - /app/node_modules
     networks:
-      - messaging_dev_network
+      - internal-net-inbox-dev
 
 networks:
-  messaging_dev_network:
+  internal-net-inbox-dev:
+    name: internal-net-inbox-dev
     driver: bridge
 
 volumes:
-  postgres_data_dev:
+  postgres-data-inbox-dev:
+    name: postgres-data-inbox-dev

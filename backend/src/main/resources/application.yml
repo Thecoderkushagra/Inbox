@@ -7,15 +7,15 @@
 spring:
   application:
     name: ${APP_NAME}
-  
+
   profiles:
     # Resolves the active Spring Profile from the environment variable
     active: ${APP_ENV}
-    
+
   lifecycle:
     # Graceful shutdown timeout before forcing termination
     timeout-per-shutdown-phase: 30s
-    
+
   flyway:
     locations: classpath:db/migration
     validate-on-migrate: true
@@ -36,7 +36,7 @@ spring:
 
   cache:
     type: redis
-    
+
   data:
     redis:
       host: ${REDIS_HOST:localhost}
