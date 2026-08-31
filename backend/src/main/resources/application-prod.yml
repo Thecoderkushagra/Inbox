@@ -1,0 +1,17 @@
+# ===================================================================
+# PRODUCTION PROFILE (application-prod.yml)
+# ===================================================================
+
+server:
+  shutdown: graceful
+  forward-headers-strategy: framework
+  compression:
+    enabled: true
+    min-response-size: 2048
+    mime-types: application/json,text/plain
+
+logging:
+  level:
+    root: WARN
+    com.messaging.backend: INFO
+    org.springframework: ERROR

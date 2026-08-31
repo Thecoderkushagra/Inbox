@@ -1,0 +1,19 @@
+# ===================================================================
+# TEST PROFILE (application-test.yml)
+# ===================================================================
+# Provides deterministic behavior and isolated settings for automated tests.
+
+spring:
+  flyway:
+    # Migrations must execute against the test database container
+    enabled: true
+    
+server:
+  # Random port selection prevents collisions during concurrent test execution
+  port: 0
+
+logging:
+  level:
+    # Reduced logging noise during test execution
+    root: WARN
+    com.messaging.backend: INFO

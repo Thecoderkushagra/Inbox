@@ -1,0 +1,17 @@
+# ===================================================================
+# DEVELOPMENT PROFILE (application-dev.yml)
+# ===================================================================
+
+server:
+  shutdown: graceful
+  tomcat:
+    websocket:
+      max-text-message-buffer-size: 1048576 # 1MB
+      max-binary-message-buffer-size: 1048576 # 1MB
+
+logging:
+  level:
+    root: INFO
+    com.messaging.backend: DEBUG
+    org.springframework.data.mongodb: DEBUG
+    org.springframework.web: INFO
