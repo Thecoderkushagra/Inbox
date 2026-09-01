@@ -56,10 +56,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({ isLoadingMessages: true });
     try {
       const page = await messagesApi.getMessages(conversationId, 0, 100);
+      const sorted = (page.content || []).slice().sort((a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
       set((state) => ({
         messages: {
           ...state.messages,
-          [conversationId]: page.content || [],
+          [conversationId]: sorted,
         },
         isLoadingMessages: false,
       }));
@@ -83,7 +86,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   receiveMessage: (message: Message) => {
-    const { activeConversationId, conversations } = get();
+    const { activeConversationId } = get();
+    const currentUserId = useAuthStore.getState().user?.id;
     const convId = message.conversationId;
 
     set((state) => {
@@ -93,21 +97,34 @@ export const useChatStore = create<ChatState>((set, get) => ({
         ? currentList.map((m) => (m.id === message.id ? message : m))
         : [...currentList, message];
 
+      // Always sort messages strictly chronological (oldest top, newest bottom)
+      updatedList.sort((a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+
+      let found = false;
       // Update conversation lastMessage & lastMessageAt
       const updatedConvs = state.conversations.map((c) => {
         if (c.id === convId) {
+          found = true;
           const isCurrent = activeConversationId === convId;
+          const isSender = message.senderId === currentUserId;
           return {
             ...c,
             lastMessage: message,
             lastMessageAt: message.createdAt,
-            unreadCount: isCurrent ? 0 : (c.unreadCount || 0) + 1,
+            unreadCount: isCurrent || isSender ? 0 : (c.unreadCount || 0) + 1,
           };
         }
         return c;
       });
 
-      // Sort by lastMessageAt descending
+      // If this conversation was not found in local state (new chat initiated by someone else), fetch all conversations
+      if (!found) {
+        get().fetchConversations();
+      }
+
+      // Sort conversations by lastMessageAt descending
       updatedConvs.sort((a, b) => {
         const timeA = new Date(a.lastMessageAt || a.createdAt).getTime();
         const timeB = new Date(b.lastMessageAt || b.createdAt).getTime();
@@ -123,7 +140,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
       };
     });
 
-    const currentUserId = useAuthStore.getState().user?.id;
     if (activeConversationId === convId && message.senderId !== currentUserId) {
       readReceiptsApi.markSeen(message.id).catch(() => {});
     }

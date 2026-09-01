@@ -10,6 +10,7 @@ import { ProfileSettingsModal } from '@/components/profile/ProfileSettingsModal'
 import { Avatar } from '@/components/ui/Avatar';
 import { LogOut, Settings, Radio } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import inboxLogo from '@/assets/inbox-logo.png';
 
 export const ChatPage: React.FC = () => {
   const { user, profile, logout } = useAuthStore();
@@ -37,7 +38,7 @@ export const ChatPage: React.FC = () => {
         {/* Brand */}
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center shadow-md">
-            <img src="/frontend/src/assets/inbox-logo.png" alt="Inbox" className="w-6 h-6 object-contain" />
+            <img src={inboxLogo} alt="Inbox" className="w-6 h-6 object-contain rounded-lg" />
           </div>
           <div>
             <h1 className="text-base font-bold text-white tracking-tight leading-none">Inbox</h1>

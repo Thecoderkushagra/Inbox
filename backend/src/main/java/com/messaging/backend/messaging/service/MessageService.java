@@ -26,6 +26,7 @@ import com.messaging.backend.pubsub.publisher.RedisEventPublisher;
 import com.messaging.backend.readreceipts.service.ReadReceiptService;
 import com.messaging.backend.websocket.constant.WebSocketDestinations;
 import com.messaging.backend.websocket.dto.response.MessageSocketResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -40,6 +41,7 @@ import java.util.Map;
 /**
  * Service for handling messaging business logic in MongoDB.
  */
+@Slf4j
 @Service
 public class MessageService {
 
@@ -130,11 +132,12 @@ public class MessageService {
         MessageSocketResponse response = messageMapper.toSocketResponse(savedMessage);
 
         try {
-            messagingTemplate.convertAndSend(WebSocketDestinations.CHAT_TOPIC, response);
+            messagingTemplate.convertAndSend(WebSocketDestinations.CHAT_TOPIC + savedMessage.getConversationId(), response);
+            messagingTemplate.convertAndSend(WebSocketDestinations.GLOBAL_CHAT_TOPIC, response);
             redisEventPublisher.publish(PubSubChannels.CHAT_CHANNEL,
                     new RedisEvent(null, "CHAT", null, response, null));
         } catch (Exception e) {
-            // Log and ignore to prevent transaction failure
+            log.error("Failed to broadcast chat event to WebSocket / Redis", e);
         }
 
         return savedMessage;
@@ -147,7 +150,13 @@ public class MessageService {
     public Page<MessageResponse> getConversationMessages(String requesterId, String conversationId, Pageable pageable) {
         conversationService.getConversationForUser(conversationId, requesterId);
 
-        Page<Message> messages = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId, pageable);
+        Pageable sortedAsc = org.springframework.data.domain.PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "createdAt")
+        );
+
+        Page<Message> messages = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId, sortedAsc);
         List<String> messageIds = messages.stream().map(Message::getId).toList();
 
         Map<String, List<MediaAttachment>> attachments = mediaService.getAttachmentsForMessages(requesterId, conversationId, messageIds);

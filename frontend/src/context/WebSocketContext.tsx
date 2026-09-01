@@ -19,7 +19,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const clientRef = useRef<Client | null>(null);
 
   const { user, isAuthenticated } = useAuthStore();
-  const { receiveMessage, updateMessageStatus } = useChatStore();
+  const { receiveMessage, updateMessageStatus, fetchConversations } = useChatStore();
   const { setPresence } = usePresenceStore();
   const { addNotification } = useNotificationStore();
 
@@ -66,7 +66,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     client.onConnect = () => {
       setIsConnected(true);
 
-      // 1. Subscribe to Chat topic
+      // 1. Subscribe to Global Chat topic
       client.subscribe('/topic/chat', (message: IMessage) => {
         try {
           const payload = JSON.parse(message.body);
@@ -77,7 +77,16 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
       });
 
-      // 2. Subscribe to Presence topic
+      // 2. Subscribe to Conversations topic (new conversations created/updated)
+      client.subscribe('/topic/conversations', () => {
+        try {
+          fetchConversations();
+        } catch (err) {
+          console.error('Error handling conversation update:', err);
+        }
+      });
+
+      // 3. Subscribe to Presence topic
       client.subscribe('/topic/presence', (message: IMessage) => {
         try {
           const payload = JSON.parse(message.body);
@@ -90,7 +99,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
       });
 
-      // 3. Subscribe to Read Receipts topic
+      // 4. Subscribe to Read Receipts topic
       client.subscribe('/topic/read-receipts', (message: IMessage) => {
         try {
           const payload = JSON.parse(message.body);
@@ -104,7 +113,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
       });
 
-      // 4. Subscribe to Private User Notifications
+      // 5. Subscribe to Private User Notifications
       client.subscribe('/user/queue/notifications', (message: IMessage) => {
         try {
           const payload = JSON.parse(message.body);

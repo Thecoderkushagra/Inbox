@@ -10,8 +10,14 @@ import java.time.Instant;
  */
 public record ConversationParticipantResponse(
         String userId,
+        String username,
+        String displayName,
+        String avatarUrl,
         ParticipantRole role,
         ParticipantStatus status,
         Instant joinedAt
 ) {
+    public ConversationParticipantResponse(String userId, ParticipantRole role, ParticipantStatus status, Instant joinedAt) {
+        this(userId, null, null, null, role, status, joinedAt);
+    }
 }

@@ -56,7 +56,6 @@ public class SearchService {
     /**
      * Searches for active users by username or email.
      */
-    @Cacheable(value = CacheConstants.SEARCH_CACHE, key = "'search:users:' + #currentUserId + ':' + #keyword + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     public Page<User> searchUsers(String currentUserId, String keyword, Pageable pageable) {
         String cleanKeyword = requireKeyword(keyword);
         return userRepository.searchUsersByKeywordAndStatus(currentUserId, cleanKeyword, UserStatus.ACTIVE, pageable);
@@ -65,7 +64,6 @@ public class SearchService {
     /**
      * Searches for conversations the user is an active participant in by title.
      */
-    @Cacheable(value = CacheConstants.SEARCH_CACHE, key = "'search:conversations:' + #currentUserId + ':' + #keyword + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     public Page<Conversation> searchConversations(String currentUserId, String keyword, Pageable pageable) {
         String cleanKeyword = requireKeyword(keyword);
         return conversationRepository.searchConversationsByTitle(
@@ -75,7 +73,6 @@ public class SearchService {
     /**
      * Searches for GROUP conversations the user is an active participant in by title.
      */
-    @Cacheable(value = CacheConstants.SEARCH_CACHE, key = "'search:groups:' + #currentUserId + ':' + #keyword + ':' + #pageable.pageNumber + ':' + #pageable.pageSize")
     public Page<Conversation> searchGroups(String currentUserId, String keyword, Pageable pageable) {
         String cleanKeyword = requireKeyword(keyword);
         return conversationRepository.searchConversationsByTypeAndTitle(

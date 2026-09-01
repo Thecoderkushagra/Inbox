@@ -75,14 +75,12 @@ public class GroupController {
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @Valid @RequestBody CreateGroupRequest request) {
 
-        Conversation group = groupService.createGroup(currentUser.getId(), request.title(), request.description());
-        if (request.initialMemberIds() != null) {
-            for (String memberId : request.initialMemberIds()) {
-                if (!memberId.equals(currentUser.getId())) {
-                    groupService.addMember(group.getId(), currentUser.getId(), memberId);
-                }
-            }
-        }
+        Conversation group = groupService.createGroup(
+                currentUser.getId(),
+                request.title(),
+                request.description(),
+                request.initialMemberIds()
+        );
         GroupResponse response = groupMapper.toGroupResponse(group);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(SuccessResponse.success("Group created successfully", response));

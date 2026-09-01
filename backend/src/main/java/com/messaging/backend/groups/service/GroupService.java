@@ -20,6 +20,7 @@ import com.messaging.backend.websocket.constant.WebSocketDestinations;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,6 +53,11 @@ public class GroupService {
 
     @Transactional
     public Conversation createGroup(String creatorId, String name, String description) {
+        return createGroup(creatorId, name, description, null);
+    }
+
+    @Transactional
+    public Conversation createGroup(String creatorId, String name, String description, List<String> initialMemberIds) {
         User creator = requireUser(creatorId);
 
         Conversation group = Conversation.builder()
@@ -62,22 +68,39 @@ public class GroupService {
                 .lastMessageAt(Instant.now())
                 .build();
 
-        ConversationParticipant participant = ConversationParticipant.builder()
+        ConversationParticipant ownerParticipant = ConversationParticipant.builder()
                 .userId(creatorId)
                 .role(ParticipantRole.OWNER)
                 .status(ParticipantStatus.ACTIVE)
                 .joinedAt(Instant.now())
                 .build();
 
-        group.addParticipant(participant);
-        Conversation saved = conversationRepository.save(group);
+        group.addParticipant(ownerParticipant);
 
+        if (initialMemberIds != null) {
+            for (String memberId : initialMemberIds) {
+                if (memberId != null && !memberId.equals(creatorId)) {
+                    ConversationParticipant member = ConversationParticipant.builder()
+                            .userId(memberId)
+                            .role(ParticipantRole.MEMBER)
+                            .status(ParticipantStatus.ACTIVE)
+                            .joinedAt(Instant.now())
+                            .build();
+                    group.addParticipant(member);
+                }
+            }
+        }
+
+        Conversation saved = conversationRepository.save(group);
         broadcastGroupUpdate(saved);
         return saved;
     }
 
     @Transactional
-    @CacheEvict(value = CacheConstants.GROUPS_CACHE, key = "'group:' + #conversationId")
+    @Caching(evict = {
+            @CacheEvict(value = CacheConstants.GROUPS_CACHE, key = "'group:' + #conversationId"),
+            @CacheEvict(value = CacheConstants.CONVERSATIONS_CACHE, key = "'conversation:' + #conversationId")
+    })
     public Conversation renameGroup(String conversationId, String requesterId, String newName) {
         Conversation group = requireGroup(conversationId);
         requireAdmin(group, requesterId);
@@ -91,7 +114,10 @@ public class GroupService {
     }
 
     @Transactional
-    @CacheEvict(value = CacheConstants.GROUPS_CACHE, key = "'group:' + #conversationId")
+    @Caching(evict = {
+            @CacheEvict(value = CacheConstants.GROUPS_CACHE, key = "'group:' + #conversationId"),
+            @CacheEvict(value = CacheConstants.CONVERSATIONS_CACHE, key = "'conversation:' + #conversationId")
+    })
     public Conversation updateGroupDescription(String conversationId, String requesterId, String newDescription) {
         Conversation group = requireGroup(conversationId);
         requireAdmin(group, requesterId);
@@ -103,7 +129,10 @@ public class GroupService {
     }
 
     @Transactional
-    @CacheEvict(value = CacheConstants.GROUPS_CACHE, key = "'group:' + #conversationId")
+    @Caching(evict = {
+            @CacheEvict(value = CacheConstants.GROUPS_CACHE, key = "'group:' + #conversationId"),
+            @CacheEvict(value = CacheConstants.CONVERSATIONS_CACHE, key = "'conversation:' + #conversationId")
+    })
     public ConversationParticipant addMember(String conversationId, String requesterId, String targetUserId) {
         Conversation group = requireGroup(conversationId);
         requireAdmin(group, requesterId);
@@ -129,7 +158,10 @@ public class GroupService {
     }
 
     @Transactional
-    @CacheEvict(value = CacheConstants.GROUPS_CACHE, key = "'group:' + #conversationId")
+    @Caching(evict = {
+            @CacheEvict(value = CacheConstants.GROUPS_CACHE, key = "'group:' + #conversationId"),
+            @CacheEvict(value = CacheConstants.CONVERSATIONS_CACHE, key = "'conversation:' + #conversationId")
+    })
     public void removeMember(String conversationId, String requesterId, String targetUserId) {
         Conversation group = requireGroup(conversationId);
         requireAdmin(group, requesterId);
@@ -142,7 +174,10 @@ public class GroupService {
     }
 
     @Transactional
-    @CacheEvict(value = CacheConstants.GROUPS_CACHE, key = "'group:' + #conversationId")
+    @Caching(evict = {
+            @CacheEvict(value = CacheConstants.GROUPS_CACHE, key = "'group:' + #conversationId"),
+            @CacheEvict(value = CacheConstants.CONVERSATIONS_CACHE, key = "'conversation:' + #conversationId")
+    })
     public ConversationParticipant promoteAdmin(String conversationId, String requesterId, String targetUserId) {
         Conversation group = requireGroup(conversationId);
         requireAdmin(group, requesterId);
@@ -161,7 +196,10 @@ public class GroupService {
     }
 
     @Transactional
-    @CacheEvict(value = CacheConstants.GROUPS_CACHE, key = "'group:' + #conversationId")
+    @Caching(evict = {
+            @CacheEvict(value = CacheConstants.GROUPS_CACHE, key = "'group:' + #conversationId"),
+            @CacheEvict(value = CacheConstants.CONVERSATIONS_CACHE, key = "'conversation:' + #conversationId")
+    })
     public ConversationParticipant demoteAdmin(String conversationId, String requesterId, String targetUserId) {
         Conversation group = requireGroup(conversationId);
         requireAdmin(group, requesterId);
@@ -180,7 +218,10 @@ public class GroupService {
     }
 
     @Transactional
-    @CacheEvict(value = CacheConstants.GROUPS_CACHE, key = "'group:' + #conversationId")
+    @Caching(evict = {
+            @CacheEvict(value = CacheConstants.GROUPS_CACHE, key = "'group:' + #conversationId"),
+            @CacheEvict(value = CacheConstants.CONVERSATIONS_CACHE, key = "'conversation:' + #conversationId")
+    })
     public void leaveGroup(String conversationId, String currentUserId) {
         Conversation group = requireGroup(conversationId);
         requireParticipant(group, currentUserId);
@@ -195,7 +236,10 @@ public class GroupService {
     }
 
     @Transactional
-    @CacheEvict(value = CacheConstants.GROUPS_CACHE, key = "'group:' + #conversationId")
+    @Caching(evict = {
+            @CacheEvict(value = CacheConstants.GROUPS_CACHE, key = "'group:' + #conversationId"),
+            @CacheEvict(value = CacheConstants.CONVERSATIONS_CACHE, key = "'conversation:' + #conversationId")
+    })
     public void deleteGroup(String conversationId, String requesterId) {
         Conversation group = requireGroup(conversationId);
         requireAdmin(group, requesterId);

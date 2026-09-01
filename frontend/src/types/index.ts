@@ -76,6 +76,9 @@ export type AuthResponse = LoginResponse;
 
 export interface ConversationParticipant {
   userId: string;
+  username?: string;
+  displayName?: string;
+  avatarUrl?: string;
   role: ParticipantRole;
   status: ParticipantStatus;
   joinedAt: string;

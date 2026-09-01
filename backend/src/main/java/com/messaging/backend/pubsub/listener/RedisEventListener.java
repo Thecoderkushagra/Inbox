@@ -105,6 +105,7 @@ public class RedisEventListener {
         MessageSocketResponse payload = objectMapper.convertValue(event.payload(), MessageSocketResponse.class);
         String destination = WebSocketDestinations.CHAT_TOPIC + payload.conversationId();
         messagingTemplate.convertAndSend(destination, payload);
+        messagingTemplate.convertAndSend(WebSocketDestinations.GLOBAL_CHAT_TOPIC, payload);
     }
 
     private void handleNotificationEvent(RedisEvent event) {

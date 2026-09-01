@@ -23,8 +23,17 @@ export const ConversationList: React.FC = () => {
   const [filterQuery, setFilterQuery] = useState('');
   const [showNewChatModal, setShowNewChatModal] = useState(false);
 
+  const getDisplayTitle = (c: Conversation) => {
+    if (c.type === 'DIRECT') {
+      const other = c.participants?.find((p) => p.userId !== user?.id);
+      if (other?.displayName) return other.displayName;
+      if (other?.username) return other.username;
+    }
+    return c.title || 'Conversation';
+  };
+
   const filteredConversations = conversations.filter((c) =>
-    (c.title || '').toLowerCase().includes(filterQuery.toLowerCase())
+    getDisplayTitle(c).toLowerCase().includes(filterQuery.toLowerCase())
   );
 
   return (
@@ -80,6 +89,7 @@ export const ConversationList: React.FC = () => {
             const isSelected = conv.id === activeConversationId;
             const otherParticipant = conv.participants?.find((p) => p.userId !== user?.id);
             const otherPresence = otherParticipant ? getUserPresence(otherParticipant.userId) : undefined;
+            const displayTitle = getDisplayTitle(conv);
 
             return (
               <div
@@ -93,7 +103,8 @@ export const ConversationList: React.FC = () => {
                 )}
               >
                 <Avatar
-                  name={conv.title || 'Chat'}
+                  name={displayTitle}
+                  src={otherParticipant?.avatarUrl}
                   size="md"
                   status={conv.type === 'DIRECT' ? otherPresence?.status : undefined}
                 />
@@ -106,7 +117,7 @@ export const ConversationList: React.FC = () => {
                         isSelected ? 'text-indigo-300' : 'text-slate-200'
                       )}
                     >
-                      <span>{conv.title || 'Conversation'}</span>
+                      <span>{displayTitle}</span>
                       {conv.type === 'GROUP' && (
                         <Users className="w-3 h-3 text-slate-400 flex-shrink-0" />
                       )}

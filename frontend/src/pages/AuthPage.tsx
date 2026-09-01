@@ -3,8 +3,9 @@ import toast from 'react-hot-toast';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Lock, Mail, User, ArrowRight, ShieldCheck, Zap } from 'lucide-react';
+import { Lock, Mail, User, ArrowRight, ShieldCheck, Zap, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import inboxLogo from '@/assets/inbox-logo.png';
 
 const isStrongPassword = (pass: string): boolean => {
   if (pass.length < 8) return false;
@@ -22,6 +23,8 @@ export const AuthPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const { login, register, isLoading, error, clearError } = useAuthStore();
   const navigate = useNavigate();
@@ -60,6 +63,8 @@ export const AuthPage: React.FC = () => {
 
   const toggleMode = () => {
     setIsLogin(!isLogin);
+    setShowPassword(false);
+    setShowConfirmPassword(false);
     clearError();
   };
 
@@ -73,7 +78,7 @@ export const AuthPage: React.FC = () => {
         {/* Header Branding */}
         <div className="text-center mb-8">
           <div className="inline-flex p-3 bg-slate-900/90 border border-slate-800 rounded-3xl shadow-2xl mb-4">
-            <img src="/frontend/src/assets/inbox-logo.png" alt="Inbox" className="w-12 h-12 object-contain" />
+            <img src={inboxLogo} alt="Inbox" className="w-12 h-12 object-contain rounded-2xl" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
             {isLogin ? 'Welcome back to Inbox' : 'Create your account'}
@@ -106,12 +111,22 @@ export const AuthPage: React.FC = () => {
                 />
                 <Input
                   label="Password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
                   leftIcon={<Lock className="w-4 h-4 text-slate-500" />}
+                  rightIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="text-slate-400 hover:text-slate-200 transition-colors focus:outline-none cursor-pointer flex items-center justify-center"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  }
                 />
               </>
             ) : (
@@ -135,24 +150,44 @@ export const AuthPage: React.FC = () => {
                 />
                 <Input
                   label="Password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
                   leftIcon={<Lock className="w-4 h-4 text-slate-500" />}
+                  rightIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="text-slate-400 hover:text-slate-200 transition-colors focus:outline-none cursor-pointer flex items-center justify-center"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  }
                 />
                 <p className="text-[11px] text-slate-400 -mt-2">
                   Must be 8+ chars with uppercase, lowercase, digit &amp; special character (e.g. <span className="text-indigo-300 font-mono">Secret@123</span>).
                 </p>
                 <Input
                   label="Confirm Password"
-                  type="password"
+                  type={showConfirmPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
                   required
                   leftIcon={<Lock className="w-4 h-4 text-slate-500" />}
+                  rightIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="text-slate-400 hover:text-slate-200 transition-colors focus:outline-none cursor-pointer flex items-center justify-center"
+                      aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  }
                 />
               </>
             )}

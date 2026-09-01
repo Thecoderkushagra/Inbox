@@ -46,6 +46,7 @@ public class User extends BaseDocument {
 
     private Set<RoleType> roles = new HashSet<>();
 
+    @org.springframework.data.annotation.Transient
     private UserProfile profile;
 
     @Builder

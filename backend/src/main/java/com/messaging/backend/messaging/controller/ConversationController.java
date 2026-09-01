@@ -61,7 +61,7 @@ public class ConversationController {
 
         Page<Conversation> conversations = conversationService.getUserConversations(
                 authenticatedUser.getId(), paginationRequest.toPageable());
-        Page<ConversationResponse> responsePage = conversations.map(conversationMapper::toConversationResponse);
+        Page<ConversationResponse> responsePage = conversations.map(c -> conversationMapper.toConversationResponse(c, authenticatedUser.getId()));
 
         return ResponseEntity.ok(SuccessResponse.success(PageResponse.of(responsePage)));
     }
@@ -78,7 +78,7 @@ public class ConversationController {
         User recipient = authService.getUserById(request.recipientId());
 
         Conversation conversation = conversationService.createPrivateConversation(creator, recipient);
-        ConversationResponse response = conversationMapper.toConversationResponse(conversation);
+        ConversationResponse response = conversationMapper.toConversationResponse(conversation, authenticatedUser.getId());
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(SuccessResponse.success("Private conversation created successfully", response));
@@ -95,7 +95,7 @@ public class ConversationController {
         User owner = authService.getUserById(authenticatedUser.getId());
 
         Conversation conversation = conversationService.createGroupConversation(owner, request.name());
-        ConversationResponse response = conversationMapper.toConversationResponse(conversation);
+        ConversationResponse response = conversationMapper.toConversationResponse(conversation, authenticatedUser.getId());
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(SuccessResponse.success("Group conversation created successfully", response));
@@ -110,7 +110,7 @@ public class ConversationController {
             @PathVariable String conversationId) {
 
         Conversation conversation = conversationService.getConversationForUser(conversationId, authenticatedUser.getId());
-        ConversationResponse response = conversationMapper.toConversationResponse(conversation);
+        ConversationResponse response = conversationMapper.toConversationResponse(conversation, authenticatedUser.getId());
 
         return ResponseEntity.ok(SuccessResponse.success("Conversation retrieved successfully", response));
     }
@@ -189,7 +189,7 @@ public class ConversationController {
         Conversation conversation = conversationService.updateConversation(
                 authenticatedUser.getId(), conversationId, request.name());
 
-        ConversationResponse response = conversationMapper.toConversationResponse(conversation);
+        ConversationResponse response = conversationMapper.toConversationResponse(conversation, authenticatedUser.getId());
 
         return ResponseEntity.ok(SuccessResponse.success("Conversation updated successfully", response));
     }

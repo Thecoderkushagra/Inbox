@@ -218,3 +218,35 @@ export const searchApi = {
   searchConversations: (keyword: string, page = 0, size = 10): Promise<PageResponse<SearchConversation>> =>
     apiClient<PageResponse<SearchConversation>>(`/api/v1/search/conversations?keyword=${encodeURIComponent(keyword)}&page=${page}&size=${size}`),
 };
+
+// Groups APIs
+export const groupsApi = {
+  createGroup: (title: string, description?: string, initialMemberIds?: string[]): Promise<Conversation> =>
+    apiClient<Conversation>('/api/v1/groups', {
+      method: 'POST',
+      body: JSON.stringify({ title, description, initialMemberIds }),
+    }),
+
+  renameGroup: (groupId: string, title: string): Promise<Conversation> =>
+    apiClient<Conversation>(`/api/v1/groups/${groupId}/rename`, {
+      method: 'PATCH',
+      body: JSON.stringify({ title }),
+    }),
+
+  addMember: (groupId: string, userId: string): Promise<ConversationParticipant> =>
+    apiClient<ConversationParticipant>(`/api/v1/groups/${groupId}/members`, {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    }),
+
+  removeMember: (groupId: string, userId: string): Promise<void> =>
+    apiClient<void>(`/api/v1/groups/${groupId}/members/${userId}`, {
+      method: 'DELETE',
+    }),
+
+  leaveGroup: (groupId: string): Promise<void> =>
+    apiClient<void>(`/api/v1/groups/${groupId}/leave`, {
+      method: 'POST',
+    }),
+};
+

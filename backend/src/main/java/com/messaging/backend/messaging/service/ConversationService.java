@@ -154,9 +154,10 @@ public class ConversationService {
      */
     public boolean isParticipant(Conversation conversation, String userId) {
         if (conversation == null || userId == null) return false;
-        return conversation.getParticipantUserIds().contains(userId) ||
-                conversation.getParticipants().stream()
-                        .anyMatch(p -> userId.equals(p.getUserId()) && p.getStatus() == ParticipantStatus.ACTIVE);
+        boolean inUserIds = conversation.getParticipantUserIds() != null && conversation.getParticipantUserIds().contains(userId);
+        boolean inParticipants = conversation.getParticipants() != null && conversation.getParticipants().stream()
+                .anyMatch(p -> userId.equals(p.getUserId()) && p.getStatus() == ParticipantStatus.ACTIVE);
+        return inUserIds || inParticipants;
     }
 
     /**

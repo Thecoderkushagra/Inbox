@@ -21,6 +21,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { GroupSettingsModal } from './GroupSettingsModal';
+import inboxLogo from '@/assets/inbox-logo.png';
 
 export const ChatWindow: React.FC = () => {
   const { user } = useAuthStore();
@@ -55,6 +56,18 @@ export const ChatWindow: React.FC = () => {
   // Determine recipient presence for direct conversations
   const otherParticipant = activeConversation?.participants?.find((p) => p.userId !== user?.id);
   const otherPresence = otherParticipant ? getUserPresence(otherParticipant.userId) : undefined;
+
+  const getDisplayTitle = (c: typeof activeConversation) => {
+    if (!c) return 'Chat';
+    if (c.type === 'DIRECT') {
+      const other = c.participants?.find((p) => p.userId !== user?.id);
+      if (other?.displayName) return other.displayName;
+      if (other?.username) return other.username;
+    }
+    return c.title || 'Chat';
+  };
+
+  const displayTitle = getDisplayTitle(activeConversation);
 
   const handleSend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -98,7 +111,7 @@ export const ChatWindow: React.FC = () => {
     return (
       <div className="flex-1 h-full flex flex-col items-center justify-center bg-slate-950/60 p-6 text-center select-none">
         <div className="w-20 h-20 rounded-3xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center mb-4 shadow-xl">
-          <img src="/frontend/src/assets/inbox-logo.png" alt="Inbox" className="w-12 h-12 object-contain" />
+          <img src={inboxLogo} alt="Inbox" className="w-12 h-12 object-contain rounded-2xl" />
         </div>
         <h2 className="text-xl font-bold text-white tracking-tight">Your Messages</h2>
         <p className="text-sm text-slate-400 max-w-sm mt-1">
@@ -118,13 +131,14 @@ export const ChatWindow: React.FC = () => {
       <div className="h-16 px-6 bg-slate-900/80 backdrop-blur-md border-b border-slate-800/80 flex items-center justify-between z-10">
         <div className="flex items-center gap-3 min-w-0">
           <Avatar
-            name={activeConversation.title || 'Chat'}
+            name={displayTitle}
+            src={otherParticipant?.avatarUrl}
             size="md"
             status={activeConversation.type === 'DIRECT' ? otherPresence?.status : undefined}
           />
           <div className="min-w-0">
             <h3 className="text-sm font-semibold text-white truncate flex items-center gap-2">
-              {activeConversation.title || 'Chat'}
+              {displayTitle}
               {activeConversation.type === 'GROUP' && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-normal">
                   Group
