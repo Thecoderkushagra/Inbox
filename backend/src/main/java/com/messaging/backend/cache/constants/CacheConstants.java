@@ -18,7 +18,6 @@ public final class CacheConstants {
     public static final String CONVERSATIONS_CACHE = "conversations";
     public static final String MESSAGES_CACHE = "messages";
     public static final String GROUPS_CACHE = "groups";
-    public static final String FRIENDSHIPS_CACHE = "friendships";
     public static final String PRESENCE_CACHE = "presence";
     public static final String SEARCH_CACHE = "search";
     public static final String MEDIA_CACHE = "media";
