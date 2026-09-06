@@ -85,41 +85,6 @@ public class ConversationService {
     }
 
     /**
-     * Creates a new group conversation.
-     */
-    @Transactional
-    public Conversation createGroupConversation(User owner, String name) {
-        if (owner == null) {
-            throw new BadRequestException("Owner must not be null");
-        }
-        if (!StringUtils.hasText(name)) {
-            throw new BadRequestException("Group name must not be blank");
-        }
-        String trimmedName = name.trim();
-        if (trimmedName.length() > 100) {
-            throw new BadRequestException("Group name must not exceed 100 characters");
-        }
-
-        Conversation conversation = Conversation.builder()
-                .type(ConversationType.GROUP)
-                .title(trimmedName)
-                .archived(false)
-                .lastMessageAt(Instant.now())
-                .build();
-
-        ConversationParticipant ownerParticipant = ConversationParticipant.builder()
-                .userId(owner.getId())
-                .role(ParticipantRole.OWNER)
-                .status(ParticipantStatus.ACTIVE)
-                .joinedAt(Instant.now())
-                .build();
-
-        conversation.addParticipant(ownerParticipant);
-
-        return conversationRepository.save(conversation);
-    }
-
-    /**
      * Retrieves a conversation by its String ID.
      */
     @Transactional(readOnly = true)

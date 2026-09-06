@@ -1,7 +1,6 @@
 package com.messaging.backend.users.dto.request;
 
 import com.messaging.backend.common.validation.annotation.NoHtml;
-import com.messaging.backend.users.enums.ProfileVisibility;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Size;
 
@@ -42,8 +41,6 @@ public record UpdateUserProfileRequest(
 
         @Size(max = 32)
         @NoHtml
-        String gender,
-
-        ProfileVisibility profileVisibility
+        String gender
 ) {
 }

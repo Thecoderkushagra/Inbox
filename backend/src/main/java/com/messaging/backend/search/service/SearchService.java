@@ -55,9 +55,13 @@ public class SearchService {
 
     /**
      * Searches for active users by username or email.
+     * If keyword is empty, returns all active users.
      */
     public Page<User> searchUsers(String currentUserId, String keyword, Pageable pageable) {
-        String cleanKeyword = requireKeyword(keyword);
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return userRepository.findAllByStatusAndIdNot(currentUserId, UserStatus.ACTIVE, pageable);
+        }
+        String cleanKeyword = keyword.trim();
         return userRepository.searchUsersByKeywordAndStatus(currentUserId, cleanKeyword, UserStatus.ACTIVE, pageable);
     }
 

@@ -5,10 +5,12 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { UserProfileModal } from '@/components/profile/UserProfileModal';
+import { AddMemberModal } from './AddMemberModal';
 import { useAuthStore } from '@/stores/authStore';
 import { useChatStore } from '@/stores/chatStore';
 import { apiClient } from '@/api/client';
-import { searchApi } from '@/api';
+import { searchApi, conversationsApi } from '@/api';
 import {
   X,
   Shield,
@@ -20,6 +22,8 @@ import {
   Users,
   Info,
   Calendar,
+  MessageSquare,
+  User as UserIcon,
 } from 'lucide-react';
 import { formatConversationTime } from '@/utils/formatDate';
 
@@ -39,6 +43,13 @@ export const ConversationInspector: React.FC<ConversationInspectorProps> = ({
   const [newTitle, setNewTitle] = useState(conversation.title || '');
   const [newMemberInput, setNewMemberInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
+  const [selectedParticipantForProfile, setSelectedParticipantForProfile] = useState<{
+    userId: string;
+    username?: string;
+    displayName?: string;
+    avatarUrl?: string;
+  } | null>(null);
 
   const currentUserParticipant = conversation.participants?.find(
     (p) => p.userId === user?.id
@@ -50,6 +61,19 @@ export const ConversationInspector: React.FC<ConversationInspectorProps> = ({
   const otherParticipant = conversation.participants?.find(
     (p) => p.userId !== user?.id
   );
+
+  const handleDirectMessage = async (targetUserId: string, targetName?: string) => {
+    try {
+      const conv = await conversationsApi.createPrivateConversation(targetUserId);
+      await fetchConversations();
+      setActiveConversationId(conv.id);
+      onClose();
+      toast.success(`Chat started with ${targetName || 'user'}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to start chat';
+      toast.error(msg);
+    }
+  };
 
   const handleRename = async () => {
     if (!newTitle.trim()) return;
@@ -177,16 +201,24 @@ export const ConversationInspector: React.FC<ConversationInspectorProps> = ({
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {/* Profile / Group Header Card */}
         <div className="text-center p-6 bg-slate-900/60 rounded-3xl border border-slate-800 space-y-3">
-          <Avatar
-            name={
-              conversation.type === 'DIRECT'
-                ? otherParticipant?.displayName || otherParticipant?.username || 'User'
-                : conversation.title || 'Group'
-            }
-            src={otherParticipant?.avatarUrl}
-            size="xl"
-            className="mx-auto"
-          />
+          <div
+            className={cn(
+              'mx-auto inline-block',
+              conversation.type === 'DIRECT' && otherParticipant && 'cursor-pointer hover:opacity-90'
+            )}
+            onClick={() => conversation.type === 'DIRECT' && otherParticipant && setSelectedParticipantForProfile(otherParticipant)}
+            title={conversation.type === 'DIRECT' ? 'View profile' : undefined}
+          >
+            <Avatar
+              name={
+                conversation.type === 'DIRECT'
+                  ? otherParticipant?.displayName || otherParticipant?.username || 'User'
+                  : conversation.title || 'Group'
+              }
+              src={otherParticipant?.avatarUrl}
+              size="xl"
+            />
+          </div>
 
           <div>
             {conversation.type === 'GROUP' && isEditingTitle ? (
@@ -203,7 +235,13 @@ export const ConversationInspector: React.FC<ConversationInspectorProps> = ({
               </div>
             ) : (
               <div className="flex items-center justify-center gap-2">
-                <h4 className="text-base font-bold text-white tracking-tight">
+                <h4
+                  className={cn(
+                    'text-base font-bold text-white tracking-tight',
+                    conversation.type === 'DIRECT' && otherParticipant && 'cursor-pointer hover:text-indigo-300 transition-colors'
+                  )}
+                  onClick={() => conversation.type === 'DIRECT' && otherParticipant && setSelectedParticipantForProfile(otherParticipant)}
+                >
                   {conversation.type === 'DIRECT'
                     ? otherParticipant?.displayName || otherParticipant?.username
                     : conversation.title}
@@ -231,6 +269,18 @@ export const ConversationInspector: React.FC<ConversationInspectorProps> = ({
             <Calendar className="w-3.5 h-3.5 text-slate-500" />
             <span>Created {formatConversationTime(conversation.createdAt)}</span>
           </div>
+
+          {conversation.type === 'DIRECT' && otherParticipant && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setSelectedParticipantForProfile(otherParticipant)}
+              className="w-full mt-2 rounded-xl gap-1.5 text-xs"
+            >
+              <UserIcon className="w-3.5 h-3.5" />
+              <span>View Profile</span>
+            </Button>
+          )}
         </div>
 
         {/* Group Participants Section */}
@@ -238,22 +288,19 @@ export const ConversationInspector: React.FC<ConversationInspectorProps> = ({
           <div className="space-y-3">
             <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider">
               <span>Participants ({conversation.participants?.length || 0})</span>
-            </div>
-
-            {/* Add Member Form for Admins */}
-            {isAdminOrOwner && (
-              <form onSubmit={handleAddMember} className="flex items-center gap-2">
-                <Input
-                  value={newMemberInput}
-                  onChange={(e) => setNewMemberInput(e.target.value)}
-                  placeholder="Username or User ID..."
-                  className="bg-slate-900 text-xs"
-                />
-                <Button type="submit" size="sm" isLoading={isLoading} className="rounded-xl">
+              {isAdminOrOwner && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setIsAddMemberOpen(true)}
+                  className="h-7 px-2 rounded-lg text-xs text-indigo-400 hover:text-indigo-300 gap-1 hover:bg-indigo-600/10"
+                  title="Add new member"
+                >
                   <UserPlus className="w-3.5 h-3.5" />
+                  <span>Add People</span>
                 </Button>
-              </form>
-            )}
+              )}
+            </div>
 
             {/* Participants list */}
             <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
@@ -264,24 +311,41 @@ export const ConversationInspector: React.FC<ConversationInspectorProps> = ({
                     key={p.userId}
                     className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-900/60 border border-slate-800/80"
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
+                    <div
+                      className="flex items-center gap-2.5 min-w-0 cursor-pointer flex-1 mr-2"
+                      onClick={() => setSelectedParticipantForProfile(p)}
+                      title="View user profile"
+                    >
                       <Avatar
                         name={p.displayName || p.username || `User ${p.userId.slice(-4)}`}
                         src={p.avatarUrl}
                         size="sm"
                       />
-                      <div className="min-w-0">
-                        <div className="text-xs font-semibold text-white truncate flex items-center gap-1">
-                          <span>{p.displayName || p.username || `User ${p.userId.slice(-4)}`}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-semibold text-white hover:text-indigo-300 truncate flex items-center gap-1 transition-colors">
+                          <span>{p.displayName || (p.username ? `@${p.username}` : `User ${p.userId.slice(-4)}`)}</span>
                           {isSelf && <span className="text-[10px] text-slate-400 font-normal">(You)</span>}
                         </div>
-                        <div className="text-[10px] text-slate-400 truncate">
-                          {p.role}
+                        <div className="text-[10px] text-slate-400 truncate flex items-center gap-1.5">
+                          {p.username && <span className="font-medium text-slate-300">@{p.username}</span>}
+                          {p.username && <span>•</span>}
+                          <span>{p.role}</span>
                         </div>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-1.5">
+                      {!isSelf && (
+                        <button
+                          onClick={() => handleDirectMessage(p.userId, p.displayName || p.username)}
+                          className="p-1 rounded-lg text-slate-400 hover:text-indigo-400 hover:bg-slate-800 transition-colors"
+                          title="Direct Message"
+                          aria-label="Direct message"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+
                       <Badge
                         variant={
                           p.role === 'OWNER'
@@ -347,6 +411,25 @@ export const ConversationInspector: React.FC<ConversationInspectorProps> = ({
           </div>
         )}
       </div>
+
+      {/* User Profile Modal */}
+      <UserProfileModal
+        userId={selectedParticipantForProfile?.userId || null}
+        isOpen={!!selectedParticipantForProfile}
+        onClose={() => setSelectedParticipantForProfile(null)}
+        fallbackUsername={selectedParticipantForProfile?.username}
+        fallbackDisplayName={selectedParticipantForProfile?.displayName}
+        fallbackAvatarUrl={selectedParticipantForProfile?.avatarUrl}
+      />
+
+      {/* Add Member Modal for Group Owners/Admins */}
+      {conversation.type === 'GROUP' && (
+        <AddMemberModal
+          isOpen={isAddMemberOpen}
+          onClose={() => setIsAddMemberOpen(false)}
+          conversation={conversation}
+        />
+      )}
     </aside>
   );
 };

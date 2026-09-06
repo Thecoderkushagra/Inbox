@@ -13,11 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.beans.factory.ObjectProvider;
-import io.micrometer.tracing.Tracer;
-import io.micrometer.tracing.Span;
-import io.micrometer.tracing.propagation.Propagator;
-import java.util.Map;
 
 @Component
 public class RedisEventListener {
@@ -26,19 +21,13 @@ public class RedisEventListener {
     private final ObjectMapper objectMapper;
     private final SimpMessagingTemplate messagingTemplate;
     private final RedisEventPublisher redisEventPublisher;
-    private final ObjectProvider<Tracer> tracerProvider;
-    private final ObjectProvider<Propagator> propagatorProvider;
 
     public RedisEventListener(ObjectMapper objectMapper,
                               SimpMessagingTemplate messagingTemplate,
-                              RedisEventPublisher redisEventPublisher,
-                              ObjectProvider<Tracer> tracerProvider,
-                              ObjectProvider<Propagator> propagatorProvider) {
+                              RedisEventPublisher redisEventPublisher) {
         this.objectMapper = objectMapper;
         this.messagingTemplate = messagingTemplate;
         this.redisEventPublisher = redisEventPublisher;
-        this.tracerProvider = tracerProvider;
-        this.propagatorProvider = propagatorProvider;
     }
 
     public void handleMessage(Object message) {
@@ -66,21 +55,7 @@ public class RedisEventListener {
             }
 
             log.debug("Received event {} from instance {}", event.eventType(), event.sourceInstanceId());
-            
-            Tracer tracer = tracerProvider.getIfAvailable();
-            Propagator propagator = propagatorProvider.getIfAvailable();
-            
-            if (tracer != null && propagator != null && event.traceContext() != null && !event.traceContext().isEmpty()) {
-                Span.Builder spanBuilder = propagator.extract(event.traceContext(), Map::get);
-                Span span = spanBuilder.name("redis-pubsub-receive").start();
-                try (Tracer.SpanInScope ws = tracer.withSpan(span)) {
-                    dispatch(event);
-                } finally {
-                    span.end();
-                }
-            } else {
-                dispatch(event);
-            }
+            dispatch(event);
         } catch (Exception e) {
             log.warn("Failed to deserialize or process Redis Pub/Sub message. Ignoring malformed payload.", e);
         }

@@ -5,18 +5,18 @@ import com.messaging.backend.cache.constants.CacheConstants;
 import com.messaging.backend.common.dto.pagination.PaginationRequest;
 import com.messaging.backend.common.exception.BadRequestException;
 import com.messaging.backend.common.exception.ConflictException;
-import com.messaging.backend.common.exception.ForbiddenException;
 import com.messaging.backend.common.exception.ResourceNotFoundException;
 import com.messaging.backend.users.dto.request.UpdateUserProfileRequest;
 import com.messaging.backend.users.entity.UserProfile;
-import com.messaging.backend.users.enums.ProfileVisibility;
 import com.messaging.backend.users.repository.UserProfileRepository;
+import com.messaging.backend.media.service.MediaService;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Service responsible for managing user profiles in MongoDB.
@@ -25,9 +25,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserProfileService {
 
     private final UserProfileRepository userProfileRepository;
+    private final MediaService mediaService;
 
-    public UserProfileService(UserProfileRepository userProfileRepository) {
+    public UserProfileService(UserProfileRepository userProfileRepository, MediaService mediaService) {
         this.userProfileRepository = userProfileRepository;
+        this.mediaService = mediaService;
     }
 
     /**
@@ -43,7 +45,6 @@ public class UserProfileService {
         UserProfile profile = UserProfile.builder()
                 .userId(user.getId())
                 .displayName(user.getUsername())
-                .profileVisibility(ProfileVisibility.PUBLIC)
                 .verified(false)
                 .build();
 
@@ -112,10 +113,18 @@ public class UserProfileService {
             profile.setBirthDate(request.birthDate());
         }
 
-        if (request.profileVisibility() != null) {
-            profile.setProfileVisibility(request.profileVisibility());
-        }
+        return userProfileRepository.save(profile);
+    }
 
+    /**
+     * Uploads an avatar image to Cloudinary and saves the URL on the user's profile.
+     */
+    @Transactional
+    @CachePut(value = CacheConstants.USERS_CACHE, key = "'user:' + #userId")
+    public UserProfile uploadAvatar(String userId, MultipartFile file) {
+        UserProfile profile = getProfileByUserId(userId);
+        String avatarUrl = mediaService.uploadAvatar(userId, file);
+        profile.setAvatarUrl(avatarUrl);
         return userProfileRepository.save(profile);
     }
 
@@ -128,32 +137,31 @@ public class UserProfileService {
     }
 
     /**
-     * Retrieves a public profile for another user.
+     * Retrieves the profile of another user by their user ID.
+     * All user profiles are fully visible to all authenticated users.
      */
     @Transactional(readOnly = true)
     public UserProfile getPublicProfile(String userId) {
-        UserProfile profile = getProfileByUserId(userId);
-
-        if (profile.getProfileVisibility() != ProfileVisibility.PUBLIC) {
-            throw new ForbiddenException("This profile is not public");
-        }
-
-        return profile;
+        return getProfileByUserId(userId);
     }
 
     /**
-     * Searches for public user profiles by display name.
+     * Searches for user profiles by display name.
      */
     @Transactional(readOnly = true)
     public Page<UserProfile> searchPublicProfiles(
             String query, PaginationRequest paginationRequest) {
         
         String normalizedQuery = query == null ? "" : query.trim();
+        org.springframework.data.domain.Pageable pageable = paginationRequest.toPageable();
+
+        if (normalizedQuery.isEmpty()) {
+            return userProfileRepository.findAll(pageable);
+        }
         
-        return userProfileRepository.findByProfileVisibilityAndDisplayNameContainingIgnoreCase(
-                ProfileVisibility.PUBLIC, 
+        return userProfileRepository.findByDisplayNameContainingIgnoreCase(
                 normalizedQuery, 
-                paginationRequest.toPageable()
+                pageable
         );
     }
 }

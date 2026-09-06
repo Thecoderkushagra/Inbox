@@ -78,31 +78,13 @@
         </dependency>
 
         <!-- ================================================================= -->
-        <!-- Observability, Metrics & Tracing                                 -->
+        <!-- Observability & Health Checks                                    -->
         <!-- ================================================================= -->
 
-        <!-- Spring Boot Actuator for application monitoring, health checks, and metrics endpoints -->
+        <!-- Spring Boot Actuator for health checks (/actuator/health for Render/UptimeRobot) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
-        </dependency>
-
-        <!-- Micrometer Prometheus registry for exposing application metrics in Prometheus format -->
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-registry-prometheus</artifactId>
-        </dependency>
-
-        <!-- Micrometer Tracing bridge to Brave for distributed request tracing (Trace IDs / Span IDs) -->
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-tracing-bridge-brave</artifactId>
-        </dependency>
-
-        <!-- AspectJ Weaver runtime for Aspect-Oriented Programming (AOP) pointcuts and advice -->
-        <dependency>
-            <groupId>org.aspectj</groupId>
-            <artifactId>aspectjweaver</artifactId>
         </dependency>
 
         <!-- ================================================================= -->

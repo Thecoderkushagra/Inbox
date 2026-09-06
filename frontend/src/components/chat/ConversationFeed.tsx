@@ -4,7 +4,7 @@ import { useChatStore } from '@/stores/chatStore';
 import { ConversationRow } from './ConversationRow';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Search, Plus, X, MessageSquare, Filter } from 'lucide-react';
+import { Search, Users, X, MessageSquare, Filter } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
 type FilterTab = 'all' | 'unread' | 'direct' | 'groups';
@@ -59,12 +59,12 @@ export const ConversationFeed: React.FC = () => {
           </div>
 
           <button
-            onClick={() => navigate('/compose')}
-            className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 active:scale-95 transition-all cursor-pointer"
-            title="Start new conversation"
-            aria-label="New conversation"
+            onClick={() => navigate('/people')}
+            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 active:scale-95 transition-all cursor-pointer"
+            title="Find people to chat"
+            aria-label="Find people"
           >
-            <Plus className="w-4 h-4" />
+            <Users className="w-4 h-4" />
           </button>
         </div>
 

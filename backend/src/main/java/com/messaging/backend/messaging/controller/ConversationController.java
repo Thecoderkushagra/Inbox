@@ -7,7 +7,6 @@ import com.messaging.backend.common.dto.pagination.PaginationRequest;
 import com.messaging.backend.common.dto.response.PageResponse;
 import com.messaging.backend.common.dto.response.SuccessResponse;
 import com.messaging.backend.messaging.dto.request.AddParticipantRequest;
-import com.messaging.backend.messaging.dto.request.CreateGroupConversationRequest;
 import com.messaging.backend.messaging.dto.request.CreatePrivateConversationRequest;
 import com.messaging.backend.messaging.dto.request.UpdateConversationRequest;
 import com.messaging.backend.messaging.dto.response.ConversationParticipantResponse;
@@ -82,23 +81,6 @@ public class ConversationController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(SuccessResponse.success("Private conversation created successfully", response));
-    }
-
-    /**
-     * Creates a new group conversation.
-     */
-    @PostMapping("/group")
-    public ResponseEntity<SuccessResponse<ConversationResponse>> createGroupConversation(
-            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
-            @Valid @RequestBody CreateGroupConversationRequest request) {
-
-        User owner = authService.getUserById(authenticatedUser.getId());
-
-        Conversation conversation = conversationService.createGroupConversation(owner, request.name());
-        ConversationResponse response = conversationMapper.toConversationResponse(conversation, authenticatedUser.getId());
-
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(SuccessResponse.success("Group conversation created successfully", response));
     }
 
     /**

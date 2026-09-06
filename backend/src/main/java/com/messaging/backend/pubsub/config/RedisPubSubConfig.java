@@ -12,11 +12,14 @@ import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+
 /**
  * Configuration for Redis Pub/Sub infrastructure.
  * Enables distributed message passing across multiple application instances.
  */
 @Configuration
+@ConditionalOnProperty(name = "app.redis.pubsub.enabled", havingValue = "true", matchIfMissing = false)
 public class RedisPubSubConfig {
 
     private static final Logger log = LoggerFactory.getLogger(RedisPubSubConfig.class);

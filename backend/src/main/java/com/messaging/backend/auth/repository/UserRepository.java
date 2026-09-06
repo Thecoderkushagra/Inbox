@@ -36,4 +36,10 @@ public interface UserRepository extends MongoRepository<User, String> {
      */
     @Query("{'status': ?2, '_id': {$ne: ?0}, $or: [{'username': {$regex: ?1, $options: 'i'}}, {'email': {$regex: ?1, $options: 'i'}}, {'profile.displayName': {$regex: ?1, $options: 'i'}}]}")
     Page<User> searchUsersByKeywordAndStatus(String currentUserId, String query, UserStatus status, Pageable pageable);
+
+    /**
+     * Retrieves all users with a specific status except the given user ID.
+     */
+    @Query("{'status': ?1, '_id': {$ne: ?0}}")
+    Page<User> findAllByStatusAndIdNot(String currentUserId, UserStatus status, Pageable pageable);
 }

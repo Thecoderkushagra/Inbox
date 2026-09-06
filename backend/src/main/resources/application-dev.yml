@@ -9,6 +9,11 @@ server:
       max-text-message-buffer-size: 1048576 # 1MB
       max-binary-message-buffer-size: 1048576 # 1MB
 
+management:
+  endpoint:
+    health:
+      show-details: always
+
 logging:
   level:
     root: INFO

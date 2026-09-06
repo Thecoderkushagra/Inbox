@@ -8,10 +8,8 @@ import { Skeleton } from '@/components/ui/Skeleton';
 // Lazy-loaded route pages
 const AuthPage = lazy(() => import('@/pages/AuthPage').then((m) => ({ default: m.AuthPage })));
 const InboxPage = lazy(() => import('@/pages/InboxPage').then((m) => ({ default: m.InboxPage })));
-const ComposePage = lazy(() => import('@/pages/ComposePage').then((m) => ({ default: m.ComposePage })));
-const SearchPage = lazy(() => import('@/pages/SearchPage').then((m) => ({ default: m.SearchPage })));
 const PeoplePage = lazy(() => import('@/pages/PeoplePage').then((m) => ({ default: m.PeoplePage })));
-const ArchivedPage = lazy(() => import('@/pages/ArchivedPage').then((m) => ({ default: m.ArchivedPage })));
+const CreateGroupPage = lazy(() => import('@/pages/CreateGroupPage').then((m) => ({ default: m.CreateGroupPage })));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 
 const PageLoader: React.FC = () => (
@@ -92,11 +90,12 @@ export const App: React.FC = () => {
           >
             <Route path="/inbox" element={<InboxPage />} />
             <Route path="/inbox/:conversationId" element={<InboxPage />} />
-            <Route path="/compose" element={<ComposePage />} />
-            <Route path="/search" element={<SearchPage />} />
             <Route path="/people" element={<PeoplePage />} />
-            <Route path="/archived" element={<ArchivedPage />} />
+            <Route path="/groups/create" element={<CreateGroupPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/compose" element={<Navigate to="/groups/create" replace />} />
+            <Route path="/search" element={<Navigate to="/people" replace />} />
+            <Route path="/archived" element={<Navigate to="/inbox" replace />} />
             <Route path="/" element={<Navigate to="/inbox" replace />} />
           </Route>
 

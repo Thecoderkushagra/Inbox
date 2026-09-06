@@ -13,8 +13,6 @@ export type ParticipantRole = 'OWNER' | 'ADMIN' | 'MEMBER';
 export type ParticipantStatus = 'ACTIVE' | 'LEFT' | 'MUTED';
 
 export type NotificationType =
-  | 'FRIEND_REQUEST_RECEIVED'
-  | 'FRIEND_REQUEST_ACCEPTED'
   | 'GROUP_MEMBER_ADDED'
   | 'GROUP_MEMBER_REMOVED'
   | 'GROUP_PROMOTED_TO_ADMIN'
@@ -41,7 +39,6 @@ export interface UserProfile {
   website?: string;
   birthDate?: string;
   gender?: string;
-  profileVisibility?: 'PUBLIC' | 'PRIVATE' | 'FRIENDS_ONLY';
   verified?: boolean;
 }
 
@@ -107,6 +104,8 @@ export interface MediaAttachment {
   fileSize: number;
   checksum?: string;
   createdAt: string;
+  messageId?: string;
+  conversationId?: string;
 }
 
 export interface Message {

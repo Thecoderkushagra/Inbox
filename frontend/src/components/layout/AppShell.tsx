@@ -17,7 +17,7 @@ export const AppShell: React.FC = () => {
   }, [fetchConversations, fetchNotifications]);
 
   return (
-    <div className="h-screen w-screen flex bg-slate-950 text-slate-100 overflow-hidden select-none">
+    <div className="h-[100dvh] w-full max-w-full flex bg-slate-950 text-slate-100 overflow-hidden select-none">
       {/* Desktop Left Navigation Rail */}
       <NavigationSidebar />
 

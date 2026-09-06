@@ -1,0 +1,35 @@
+{
+  "name": "inbox-reliability-test-suite",
+  "version": "1.0.0",
+  "description": "Comprehensive multi-tiered test and reliability suite for Inbox messaging platform",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run unit",
+    "test:integration": "vitest run integration",
+    "test:chaos": "vitest run chaos",
+    "test:security": "vitest run security",
+    "test:e2e": "playwright test",
+    "test:load": "bash scripts/run_load.sh",
+    "test:all": "bash scripts/run_all_tests.sh"
+  },
+  "dependencies": {
+    "@stomp/stompjs": "^7.0.0",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "sockjs-client": "^1.6.1",
+    "ws": "^8.18.0",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.1",
+    "@types/node": "^22.13.9",
+    "@types/sockjs-client": "^1.5.4",
+    "@types/ws": "^8.5.14",
+    "artillery": "^2.0.21",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.7"
+  }
+}

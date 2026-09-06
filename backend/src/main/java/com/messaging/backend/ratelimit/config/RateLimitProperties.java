@@ -10,6 +10,7 @@ import java.util.Map;
 public class RateLimitProperties {
 
     private boolean enabled = true;
+    private boolean useRedis = false;
     
     // Default policies
     private Map<String, Policy> policies = Map.of(
@@ -27,6 +28,14 @@ public class RateLimitProperties {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public boolean isUseRedis() {
+        return useRedis;
+    }
+
+    public void setUseRedis(boolean useRedis) {
+        this.useRedis = useRedis;
     }
 
     public Map<String, Policy> getPolicies() {

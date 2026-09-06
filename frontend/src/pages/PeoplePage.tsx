@@ -6,9 +6,10 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { MobileHeader } from '@/components/navigation/MobileHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { UserProfileModal } from '@/components/profile/UserProfileModal';
 import { useAuthStore } from '@/stores/authStore';
 import { useChatStore } from '@/stores/chatStore';
-import { Users, Search, MessageSquare, Plus, ArrowRight, Mail } from 'lucide-react';
+import { Users, Search, MessageSquare, User, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export const PeoplePage: React.FC = () => {
@@ -19,11 +20,12 @@ export const PeoplePage: React.FC = () => {
   const [query, setQuery] = useState('');
   const [people, setPeople] = useState<SearchUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedUserForProfile, setSelectedUserForProfile] = useState<SearchUser | null>(null);
 
   const fetchPeople = async (keyword: string) => {
     setIsLoading(true);
     try {
-      const res = await searchApi.searchUsers(keyword || 'a', 0, 30);
+      const res = await searchApi.searchUsers(keyword.trim(), 0, 50);
       const filtered = (res.content || []).filter((u) => u.userId !== user?.id);
       setPeople(filtered);
     } catch (err) {
@@ -101,7 +103,11 @@ export const PeoplePage: React.FC = () => {
                 key={p.userId}
                 className="p-4 rounded-3xl bg-slate-900/60 hover:bg-slate-900 border border-slate-800/80 hover:border-indigo-500/30 transition-all flex flex-col justify-between space-y-4 group shadow-sm"
               >
-                <div className="flex items-start gap-3 min-w-0">
+                <div
+                  className="flex items-start gap-3 min-w-0 cursor-pointer"
+                  onClick={() => setSelectedUserForProfile(p)}
+                  title="View user profile"
+                >
                   <Avatar
                     name={p.displayName || p.username}
                     src={p.avatarUrl}
@@ -121,14 +127,23 @@ export const PeoplePage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-end">
+                <div className="pt-2 border-t border-slate-800/80 flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setSelectedUserForProfile(p)}
+                    className="flex-1 rounded-xl text-xs"
+                  >
+                    <User className="w-3.5 h-3.5 mr-1" />
+                    <span>Profile</span>
+                  </Button>
                   <Button
                     size="sm"
                     onClick={() => handleStartChat(p)}
-                    className="w-full rounded-xl gap-1.5"
+                    className="flex-1 rounded-xl gap-1 text-xs"
                   >
                     <MessageSquare className="w-3.5 h-3.5" />
-                    <span>Send Message</span>
+                    <span>Message</span>
                   </Button>
                 </div>
               </div>
@@ -136,6 +151,16 @@ export const PeoplePage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* User Profile Modal */}
+      <UserProfileModal
+        userId={selectedUserForProfile?.userId || null}
+        isOpen={!!selectedUserForProfile}
+        onClose={() => setSelectedUserForProfile(null)}
+        fallbackUsername={selectedUserForProfile?.username}
+        fallbackDisplayName={selectedUserForProfile?.displayName}
+        fallbackAvatarUrl={selectedUserForProfile?.avatarUrl}
+      />
     </div>
   );
 };

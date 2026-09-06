@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useChatStore } from '@/stores/chatStore';
 import { usePresenceStore } from '@/stores/presenceStore';
 import { useNotificationStore } from '@/stores/notificationStore';
+import { getAccessTokenCookie } from '@/utils/cookies';
 import { Message, MessageStatus, NotificationResponse, PresenceResponse, ReadReceiptResponse } from '@/types';
 
 interface WebSocketContextType {
@@ -19,7 +20,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const clientRef = useRef<Client | null>(null);
 
   const { user, isAuthenticated } = useAuthStore();
-  const { receiveMessage, updateMessageStatus, fetchConversations } = useChatStore();
+  const { receiveMessage, addMediaAttachment, updateMessageStatus, fetchConversations } = useChatStore();
   const { setPresence } = usePresenceStore();
   const { addNotification } = useNotificationStore();
 
@@ -33,7 +34,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       return;
     }
 
-    const token = localStorage.getItem('access_token');
+    const getToken = () => getAccessTokenCookie() || localStorage.getItem('access_token') || '';
     
     // Resolve SockJS HTTP/HTTPS URL from environment
     let rawWs =
@@ -54,8 +55,14 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const client = new Client({
       webSocketFactory: () => new SockJS(rawWs),
+      beforeConnect: () => {
+        const currentToken = getToken();
+        client.connectHeaders = {
+          Authorization: currentToken ? `Bearer ${currentToken}` : '',
+        };
+      },
       connectHeaders: {
-        Authorization: `Bearer ${token}`,
+        Authorization: getToken() ? `Bearer ${getToken()}` : '',
       },
       debug: () => {},
       reconnectDelay: 5000,
@@ -121,6 +128,19 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           addNotification(notif);
         } catch (err) {
           console.error('Error parsing notification:', err);
+        }
+      });
+
+      // 6. Subscribe to Media topic (incoming attachments in real-time)
+      client.subscribe('/topic/media', (message: IMessage) => {
+        try {
+          const payload = JSON.parse(message.body);
+          const media: MediaAttachment = payload.data || payload;
+          if (media) {
+            addMediaAttachment(media);
+          }
+        } catch (err) {
+          console.error('Error parsing media event:', err);
         }
       });
     };

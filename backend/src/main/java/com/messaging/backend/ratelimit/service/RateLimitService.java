@@ -9,8 +9,12 @@ import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.ArrayDeque;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Service
 public class RateLimitService {
@@ -34,6 +38,12 @@ public class RateLimitService {
         "redis.call('PEXPIRE', key, window_ms + 1000)\n" +
         "return limit - count - 1";
 
+    private static class WindowBucket {
+        final ReentrantLock lock = new ReentrantLock();
+        final Deque<Long> timestamps = new ArrayDeque<>();
+    }
+
+    private final ConcurrentHashMap<String, WindowBucket> localBuckets = new ConcurrentHashMap<>();
     private final StringRedisTemplate stringRedisTemplate;
     private final RateLimitProperties properties;
     private final DefaultRedisScript<Long> redisScript;
@@ -57,16 +67,21 @@ public class RateLimitService {
             return new RateLimitResult(true, 1, 0);
         }
 
-        String redisKey = "rate:" + policyKey + ":" + identifier;
+        String rateKey = "rate:" + policyKey + ":" + identifier;
         long windowMs = policy.getWindowSeconds() * 1000L;
         long limit = policy.getLimit();
         long nowMs = Instant.now().toEpochMilli();
-        String randomId = UUID.randomUUID().toString();
 
+        // Use local in-memory sliding window when useRedis is false (saves Upstash daily quotas)
+        if (!properties.isUseRedis()) {
+            return consumeLocally(rateKey, windowMs, limit, policy.getWindowSeconds(), nowMs);
+        }
+
+        String randomId = UUID.randomUUID().toString();
         try {
             Long remaining = stringRedisTemplate.execute(
                     redisScript,
-                    Collections.singletonList(redisKey),
+                    Collections.singletonList(rateKey),
                     String.valueOf(windowMs),
                     String.valueOf(limit),
                     String.valueOf(nowMs),
@@ -74,16 +89,37 @@ public class RateLimitService {
             );
 
             if (remaining == null || remaining < 0) {
-                log.warn("Rate limit EXCEEDED for key: {}", redisKey);
+                log.warn("Rate limit EXCEEDED for key: {}", rateKey);
                 return new RateLimitResult(false, 0, policy.getWindowSeconds());
             }
 
-            log.debug("Rate limit CONSUMED for key: {}, remaining: {}", redisKey, remaining);
+            log.debug("Rate limit CONSUMED for key: {}, remaining: {}", rateKey, remaining);
             return new RateLimitResult(true, remaining, 0);
             
         } catch (Exception e) {
-            log.error("Redis failure during rate limiting for key: {}, failing OPEN", redisKey, e);
-            return new RateLimitResult(true, 1, 0); // Fail open strategy
+            log.error("Redis failure during rate limiting for key: {}, falling back to local memory", rateKey, e);
+            return consumeLocally(rateKey, windowMs, limit, policy.getWindowSeconds(), nowMs);
+        }
+    }
+
+    private RateLimitResult consumeLocally(String rateKey, long windowMs, long limit, int windowSeconds, long nowMs) {
+        WindowBucket bucket = localBuckets.computeIfAbsent(rateKey, k -> new WindowBucket());
+        bucket.lock.lock();
+        try {
+            long clearBefore = nowMs - windowMs;
+            while (!bucket.timestamps.isEmpty() && bucket.timestamps.peekFirst() < clearBefore) {
+                bucket.timestamps.pollFirst();
+            }
+            if (bucket.timestamps.size() >= limit) {
+                log.warn("Rate limit EXCEEDED locally for key: {}", rateKey);
+                return new RateLimitResult(false, 0, windowSeconds);
+            }
+            bucket.timestamps.addLast(nowMs);
+            long remaining = limit - bucket.timestamps.size();
+            log.debug("Rate limit CONSUMED locally for key: {}, remaining: {}", rateKey, remaining);
+            return new RateLimitResult(true, remaining, 0);
+        } finally {
+            bucket.lock.unlock();
         }
     }
 }

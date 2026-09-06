@@ -1,7 +1,6 @@
 package com.messaging.backend.users.repository;
 
 import com.messaging.backend.users.entity.UserProfile;
-import com.messaging.backend.users.enums.ProfileVisibility;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -21,10 +20,7 @@ public interface UserProfileRepository extends MongoRepository<UserProfile, Stri
 
     Page<UserProfile> findByDisplayNameIgnoreCase(String displayName, Pageable pageable);
 
+    Page<UserProfile> findByDisplayNameContainingIgnoreCase(String displayName, Pageable pageable);
+
     boolean existsByDisplayNameIgnoreCase(String displayName);
-
-    Page<UserProfile> findByProfileVisibility(ProfileVisibility profileVisibility, Pageable pageable);
-
-    Page<UserProfile> findByProfileVisibilityAndDisplayNameContainingIgnoreCase(
-            ProfileVisibility visibility, String displayName, Pageable pageable);
 }

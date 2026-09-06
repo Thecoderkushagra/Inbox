@@ -4,7 +4,13 @@ import { useNotificationStore } from '@/stores/notificationStore';
 import { formatRelativeTime } from '@/utils/formatDate';
 import { cn } from '@/utils/cn';
 
-export const NotificationDropdown: React.FC = () => {
+interface NotificationDropdownProps {
+  position?: 'sidebar' | 'top-right';
+}
+
+export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
+  position = 'sidebar',
+}) => {
   const {
     notifications,
     unreadCount,
@@ -32,6 +38,11 @@ export const NotificationDropdown: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const positionClasses =
+    position === 'sidebar'
+      ? 'bottom-full left-0 mb-2 md:bottom-0 md:left-full md:mb-0 md:ml-3'
+      : 'right-0 mt-2';
+
   return (
     <div ref={dropdownRef} className="relative">
       <button
@@ -49,7 +60,12 @@ export const NotificationDropdown: React.FC = () => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95">
+        <div
+          className={cn(
+            'absolute w-80 sm:w-96 max-w-[calc(100vw-2rem)] bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95',
+            positionClasses
+          )}
+        >
           <div className="p-3.5 border-b border-slate-800 flex items-center justify-between">
             <h3 className="text-sm font-bold text-white">Notifications</h3>
             {notifications.some((n) => !n.read) && (

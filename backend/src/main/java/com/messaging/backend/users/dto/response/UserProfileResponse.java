@@ -1,6 +1,5 @@
 package com.messaging.backend.users.dto.response;
 
-import com.messaging.backend.users.enums.ProfileVisibility;
 import lombok.Builder;
 
 import java.time.LocalDate;
@@ -20,7 +19,6 @@ public record UserProfileResponse(
         String website,
         LocalDate birthDate,
         String gender,
-        ProfileVisibility profileVisibility,
         boolean verified
 ) {
 }

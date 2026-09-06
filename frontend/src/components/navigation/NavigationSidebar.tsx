@@ -11,13 +11,9 @@ import inboxLogo from '@/assets/inbox-logo.png';
 import {
   MessageSquare,
   Users,
-  Search,
-  Archive,
+  UserPlus,
   Settings,
-  Plus,
   LogOut,
-  Radio,
-  Lock,
 } from 'lucide-react';
 
 export const NavigationSidebar: React.FC = () => {
@@ -38,23 +34,18 @@ export const NavigationSidebar: React.FC = () => {
     {
       to: '/inbox',
       icon: MessageSquare,
-      label: 'Chats',
+      label: 'Chat',
       badge: totalUnreadMessages > 0 ? totalUnreadMessages : undefined,
     },
     {
       to: '/people',
       icon: Users,
-      label: 'People',
+      label: 'Search Peoples',
     },
     {
-      to: '/search',
-      icon: Search,
-      label: 'Search',
-    },
-    {
-      to: '/archived',
-      icon: Archive,
-      label: 'Archived',
+      to: '/groups/create',
+      icon: UserPlus,
+      label: 'Create Groups',
     },
     {
       to: '/settings',
@@ -72,7 +63,7 @@ export const NavigationSidebar: React.FC = () => {
 
   return (
     <aside
-      className="w-18 md:w-64 h-full flex flex-col bg-slate-950 border-r border-slate-800/80 flex-shrink-0 select-none z-30 transition-all duration-200"
+      className="hidden md:flex md:w-64 h-full flex-col bg-slate-950 border-r border-slate-800/80 flex-shrink-0 select-none z-30 transition-all duration-200"
       aria-label="Sidebar Navigation"
     >
       {/* Brand Header */}
@@ -109,21 +100,8 @@ export const NavigationSidebar: React.FC = () => {
         </div>
       </div>
 
-      {/* Primary Compose Action */}
-      <div className="p-3">
-        <button
-          onClick={() => navigate('/compose')}
-          className="w-full flex items-center justify-center gap-2.5 py-2.5 px-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25 active:scale-[0.98] transition-all cursor-pointer font-semibold text-xs group"
-          title="New Conversation"
-          aria-label="Start New Conversation"
-        >
-          <Plus className="w-4 h-4 transition-transform group-hover:rotate-90" />
-          <span className="hidden md:inline">New Chat</span>
-        </button>
-      </div>
-
       {/* Navigation Links */}
-      <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive =

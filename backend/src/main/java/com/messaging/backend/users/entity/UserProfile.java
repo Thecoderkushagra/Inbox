@@ -1,7 +1,6 @@
 package com.messaging.backend.users.entity;
 
 import com.messaging.backend.common.entity.BaseDocument;
-import com.messaging.backend.users.enums.ProfileVisibility;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Size;
 import lombok.AccessLevel;
@@ -9,7 +8,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -26,7 +24,6 @@ import java.time.LocalDate;
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Document(collection = "user_profiles")
-@CompoundIndex(name = "idx_vis_display", def = "{'profileVisibility': 1, 'displayName': 1}")
 public class UserProfile extends BaseDocument {
 
     @Indexed(unique = true)
@@ -57,14 +54,12 @@ public class UserProfile extends BaseDocument {
     @Size(max = 32)
     private String gender;
 
-    private ProfileVisibility profileVisibility = ProfileVisibility.PUBLIC;
-
     private boolean verified;
 
     @Builder
     public UserProfile(String userId, String displayName, String bio, String avatarUrl, 
                        String bannerUrl, String location, String website, LocalDate birthDate, 
-                       String gender, ProfileVisibility profileVisibility, boolean verified) {
+                       String gender, boolean verified) {
         this.userId = userId;
         this.displayName = displayName;
         this.bio = bio;
@@ -74,7 +69,6 @@ public class UserProfile extends BaseDocument {
         this.website = website;
         this.birthDate = birthDate;
         this.gender = gender;
-        this.profileVisibility = profileVisibility != null ? profileVisibility : ProfileVisibility.PUBLIC;
         this.verified = verified;
     }
 }

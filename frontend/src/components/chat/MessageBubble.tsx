@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Message, User } from '@/types';
+import { Message, User, ConversationParticipant } from '@/types';
 import { formatMessageTime } from '@/utils/formatDate';
 import { cn } from '@/utils/cn';
-import { Check, CheckCheck, FileText, Download, Trash2, Copy, Play } from 'lucide-react';
+import { Check, CheckCheck, FileText, Download, Trash2, Copy, Play, Loader2, Image as ImageIcon } from 'lucide-react';
 import { messagesApi } from '@/api';
 import { useChatStore } from '@/stores/chatStore';
 
@@ -10,12 +10,14 @@ interface MessageBubbleProps {
   message: Message;
   currentUser: User | null;
   conversationType?: 'DIRECT' | 'GROUP';
+  sender?: ConversationParticipant;
 }
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   currentUser,
   conversationType,
+  sender,
 }) => {
   const isMine = currentUser ? message.senderId === currentUser.id : false;
   const [showOptions, setShowOptions] = useState(false);
@@ -78,26 +80,42 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         >
           {/* Sender in group conversations */}
           {conversationType === 'GROUP' && !isMine && (
-            <div className="text-xs font-semibold text-indigo-400 mb-1">
-              Sender: {message.senderId.slice(-6)}
+            <div className="text-xs font-semibold text-indigo-400 mb-1 flex items-center gap-1.5 flex-wrap">
+              <span>
+                {sender?.displayName || (sender?.username ? `@${sender.username}` : `User ${message.senderId.slice(-6)}`)}
+              </span>
+              {sender?.displayName && sender?.username && (
+                <span className="text-[10px] text-slate-400 font-normal">
+                  @{sender.username}
+                </span>
+              )}
             </div>
           )}
 
           {/* Media Attachments */}
           {message.attachments && message.attachments.length > 0 && (
             <div className="space-y-2 mb-2">
-              {message.attachments.map((att) => {
-                const isImage = att.contentType.startsWith('image/');
-                const isVideo = att.contentType.startsWith('video/');
-                const isAudio = att.contentType.startsWith('audio/');
+              {message.attachments.map((att, idx) => {
+                const isImage =
+                  att.contentType?.startsWith('image/') ||
+                  /\.(jpe?g|png|gif|webp)$/i.test(att.url || att.originalFilename || '');
+                const isVideo =
+                  att.contentType?.startsWith('video/') ||
+                  /\.(mp4|webm)$/i.test(att.url || att.originalFilename || '');
+                const isAudio =
+                  att.contentType?.startsWith('audio/') ||
+                  /\.(mp3|wav|ogg)$/i.test(att.url || att.originalFilename || '');
 
                 if (isImage) {
                   return (
-                    <div key={att.attachmentId} className="relative rounded-xl overflow-hidden cursor-pointer group/img">
+                    <div
+                      key={att.attachmentId || att.storageKey || idx}
+                      className="relative rounded-xl overflow-hidden cursor-pointer group/img max-w-full"
+                    >
                       <img
                         src={att.url}
-                        alt={att.originalFilename}
-                        className="max-h-72 w-full object-cover rounded-xl hover:scale-102 transition-transform duration-200"
+                        alt={att.originalFilename || 'Image attachment'}
+                        className="max-h-72 w-full object-cover rounded-xl hover:scale-[1.02] transition-transform duration-200"
                         onClick={() => setSelectedImage(att.url)}
                       />
                     </div>
@@ -106,7 +124,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
                 if (isVideo) {
                   return (
-                    <div key={att.attachmentId} className="rounded-xl overflow-hidden bg-black/40">
+                    <div key={att.attachmentId || att.storageKey || idx} className="rounded-xl overflow-hidden bg-black/40">
                       <video src={att.url} controls className="max-h-72 w-full rounded-xl" />
                     </div>
                   );
@@ -114,7 +132,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
                 if (isAudio) {
                   return (
-                    <div key={att.attachmentId} className="p-2 bg-slate-900/60 rounded-xl">
+                    <div key={att.attachmentId || att.storageKey || idx} className="p-2 bg-slate-900/60 rounded-xl">
                       <audio src={att.url} controls className="w-full h-8" />
                     </div>
                   );
@@ -122,7 +140,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
                 return (
                   <a
-                    key={att.attachmentId}
+                    key={att.attachmentId || att.storageKey || idx}
                     href={att.url}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -134,7 +152,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-slate-200 truncate">{att.originalFilename}</div>
                       <div className="text-[10px] text-slate-400">
-                        {(att.fileSize / 1024).toFixed(1)} KB
+                        {att.fileSize ? `${(att.fileSize / 1024).toFixed(1)} KB` : 'Attachment'}
                       </div>
                     </div>
                     <Download className="w-4 h-4 text-slate-400 hover:text-white" />
@@ -144,8 +162,19 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             </div>
           )}
 
-          {/* Text Content */}
-          {message.content && (
+          {/* Pending attachment loading state */}
+          {(!message.attachments || message.attachments.length === 0) &&
+            message.content?.startsWith('Sent an attachment:') && (
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-black/20 border border-white/10 mb-1.5">
+                <Loader2 className="w-4 h-4 text-indigo-300 animate-spin flex-shrink-0" />
+                <span className="text-xs text-indigo-100 font-medium truncate">
+                  {message.content.replace('Sent an attachment: ', 'Uploading ')}
+                </span>
+              </div>
+          )}
+
+          {/* Text Content: only show if not an attachment placeholder */}
+          {message.content && !message.content.startsWith('Sent an attachment:') && (
             <p className="whitespace-pre-wrap leading-relaxed select-text">{message.content}</p>
           )}
 

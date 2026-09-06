@@ -19,7 +19,7 @@ export const InboxPage: React.FC = () => {
   // If a conversation is selected (conversationId exists in URL), show only ChatCanvas (with Back button)
   // If no conversation is selected, show only ConversationFeed
   if (isMobile) {
-    if (conversationId && activeConversation) {
+    if (conversationId) {
       return (
         <div className="h-full w-full flex flex-col overflow-hidden">
           <ChatCanvas
@@ -27,7 +27,7 @@ export const InboxPage: React.FC = () => {
             onToggleInspector={() => setIsInspectorOpen(!isInspectorOpen)}
             isInspectorOpen={isInspectorOpen}
           />
-          {isInspectorOpen && (
+          {isInspectorOpen && activeConversation && (
             <div className="fixed inset-0 z-50 bg-slate-950 flex flex-col">
               <ConversationInspector
                 conversation={activeConversation}

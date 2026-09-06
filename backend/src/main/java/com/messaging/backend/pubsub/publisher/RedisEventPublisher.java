@@ -4,15 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.messaging.backend.pubsub.dto.RedisEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.UUID;
-import java.util.Map;
-import java.util.HashMap;
-import org.springframework.beans.factory.ObjectProvider;
-import io.micrometer.tracing.Tracer;
-import io.micrometer.tracing.propagation.Propagator;
 
 @Service
 public class RedisEventPublisher {
@@ -21,34 +18,24 @@ public class RedisEventPublisher {
     private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
     private final String instanceId = UUID.randomUUID().toString();
-    private final ObjectProvider<Tracer> tracerProvider;
-    private final ObjectProvider<Propagator> propagatorProvider;
+
+    @Value("${app.redis.pubsub.enabled:false}")
+    private boolean pubSubEnabled;
 
     public RedisEventPublisher(StringRedisTemplate stringRedisTemplate,
-                               ObjectMapper objectMapper,
-                               ObjectProvider<Tracer> tracerProvider,
-                               ObjectProvider<Propagator> propagatorProvider) {
+                               ObjectMapper objectMapper) {
         this.stringRedisTemplate = stringRedisTemplate;
         this.objectMapper = objectMapper;
-        this.tracerProvider = tracerProvider;
-        this.propagatorProvider = propagatorProvider;
     }
 
     public void publish(String channel, RedisEvent event) {
-        if (event == null || channel == null) {
+        if (!pubSubEnabled) {
+            log.trace("Redis Pub/Sub is disabled (single-instance deployment). Skipping publish to {}", channel);
             return;
         }
 
-        Map<String, String> traceContext = new HashMap<>();
-        if (event.traceContext() != null) {
-            traceContext.putAll(event.traceContext());
-        }
-        
-        Tracer tracer = tracerProvider.getIfAvailable();
-        Propagator propagator = propagatorProvider.getIfAvailable();
-        
-        if (tracer != null && propagator != null && tracer.currentSpan() != null) {
-            propagator.inject(tracer.currentSpan().context(), traceContext, Map::put);
+        if (event == null || channel == null) {
+            return;
         }
 
         // Ensure sourceInstanceId is populated if not provided
@@ -58,7 +45,7 @@ public class RedisEventPublisher {
                 event.sourceInstanceId() != null ? event.sourceInstanceId() : this.instanceId,
                 event.payload(),
                 event.createdAt(),
-                traceContext
+                event.traceContext() != null ? event.traceContext() : Collections.emptyMap()
         );
 
         log.debug("Publishing event {} to channel {}", eventToPublish.eventType(), channel);

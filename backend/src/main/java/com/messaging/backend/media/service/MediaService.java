@@ -119,6 +119,13 @@ public class MediaService {
 
         String checksum = calculateChecksum(file);
 
+        if (cloudinary.config.cloudName == null || cloudinary.config.cloudName.isBlank()
+                || cloudinary.config.cloudName.contains("<")
+                || cloudinary.config.apiKey == null || cloudinary.config.apiKey.isBlank()
+                || cloudinary.config.apiKey.contains("<")) {
+            throw new BadRequestException("Cloudinary is not configured or contains placeholder credentials. Please set a valid CLOUDINARY_URL in your environment.");
+        }
+
         try {
             Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
                     "folder", mediaProperties.getUploadFolder(),
@@ -144,9 +151,9 @@ public class MediaService {
             MediaAttachment saved = mediaAttachmentRepository.save(attachment);
             broadcastMediaUploaded(saved);
             return saved;
-        } catch (IOException e) {
-            log.error("Failed to upload file to Cloudinary", e);
-            throw new IllegalStateException("Cloudinary upload failed: " + e.getMessage(), e);
+        } catch (Exception e) {
+            log.error("Failed to upload file to Cloudinary: {}", e.getMessage(), e);
+            throw new BadRequestException("Cloudinary upload failed: " + (e.getMessage() != null ? e.getMessage() : "Unknown error"));
         }
     }
 
@@ -239,6 +246,41 @@ public class MediaService {
 
         List<MediaAttachment> attachments = mediaAttachmentRepository.findByMessageIdInAndDeletedFalse(messageIds);
         return attachments.stream().collect(Collectors.groupingBy(MediaAttachment::getMessageId));
+    }
+
+    public String uploadAvatar(String userId, MultipartFile file) {
+        if (file.isEmpty()) {
+            throw new BadRequestException("Cannot upload empty file");
+        }
+
+        long fileSize = file.getSize();
+        if (fileSize <= 0 || fileSize > mediaProperties.getMaxFileSize()) {
+            throw new BadRequestException("File size exceeds maximum allowed 10MB limit");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !mediaProperties.getAllowedImageTypes().contains(contentType.toLowerCase())) {
+            throw new BadRequestException("Only image files (JPEG, PNG, GIF, WebP) are allowed for avatar");
+        }
+
+        if (cloudinary.config.cloudName == null || cloudinary.config.cloudName.isBlank()
+                || cloudinary.config.cloudName.contains("<")
+                || cloudinary.config.apiKey == null || cloudinary.config.apiKey.isBlank()
+                || cloudinary.config.apiKey.contains("<")) {
+            throw new BadRequestException("Cloudinary is not configured or contains placeholder credentials. Please set a valid CLOUDINARY_URL in your environment.");
+        }
+
+        try {
+            Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
+                    "folder", mediaProperties.getUploadFolder() + "/avatars",
+                    "resource_type", "image"
+            ));
+
+            return (String) uploadResult.get("secure_url");
+        } catch (Exception e) {
+            log.error("Failed to upload avatar to Cloudinary: {}", e.getMessage(), e);
+            throw new BadRequestException("Cloudinary avatar upload failed: " + (e.getMessage() != null ? e.getMessage() : "Unknown error"));
+        }
     }
 
     private boolean isContentTypeAllowed(String contentType) {

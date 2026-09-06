@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Conversation, Message, MessageStatus } from '@/types';
+import { Conversation, Message, MessageStatus, MediaAttachment } from '@/types';
 import { conversationsApi, messagesApi, readReceiptsApi } from '@/api';
 import { useAuthStore } from './authStore';
 
@@ -17,6 +17,7 @@ interface ChatState {
   fetchMessages: (conversationId: string) => Promise<void>;
   sendMessage: (conversationId: string, content: string) => Promise<Message>;
   receiveMessage: (message: Message) => void;
+  addMediaAttachment: (attachment: MediaAttachment) => void;
   updateMessageStatus: (messageId: string, status: MessageStatus) => void;
   markConversationAsRead: (conversationId: string) => Promise<void>;
   addConversation: (conv: Conversation) => void;
@@ -143,6 +144,48 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (activeConversationId === convId && message.senderId !== currentUserId) {
       readReceiptsApi.markSeen(message.id).catch(() => {});
     }
+  },
+
+  addMediaAttachment: (attachment: MediaAttachment) => {
+    set((state) => {
+      const newMessages = { ...state.messages };
+      let updated = false;
+
+      const targetConvIds = attachment.conversationId
+        ? [attachment.conversationId]
+        : Object.keys(newMessages);
+
+      for (const convId of targetConvIds) {
+        const msgList = newMessages[convId];
+        if (!msgList) continue;
+
+        const idx = msgList.findIndex((m) => m.id === attachment.messageId);
+        if (idx !== -1) {
+          const targetMsg = msgList[idx];
+          const existingAtts = targetMsg.attachments || [];
+          const exists = existingAtts.some(
+            (a) =>
+              (attachment.attachmentId && a.attachmentId === attachment.attachmentId) ||
+              (attachment.storageKey && a.storageKey === attachment.storageKey) ||
+              (attachment.url && a.url === attachment.url)
+          );
+          if (!exists) {
+            const updatedMsg: Message = {
+              ...targetMsg,
+              attachments: [...existingAtts, attachment],
+            };
+            const updatedList = [...msgList];
+            updatedList[idx] = updatedMsg;
+            newMessages[convId] = updatedList;
+            updated = true;
+          }
+          break;
+        }
+      }
+
+      if (!updated) return state;
+      return { messages: newMessages };
+    });
   },
 
   updateMessageStatus: (messageId: string, status: MessageStatus) => {

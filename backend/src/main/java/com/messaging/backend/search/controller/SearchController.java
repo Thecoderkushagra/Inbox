@@ -32,7 +32,7 @@ public class SearchController {
     @GetMapping("/users")
     public SuccessResponse<Page<SearchUserResponse>> searchUsers(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
-            @RequestParam("keyword") String keyword,
+            @RequestParam(value = "keyword", required = false, defaultValue = "") String keyword,
             Pageable pageable) {
 
         Page<SearchUserResponse> result = searchMapper.toUserResponsePage(

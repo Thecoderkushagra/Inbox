@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Controller exposing REST APIs for managing user profiles.
@@ -87,6 +88,20 @@ public class UserProfileController {
         UserProfileResponse response = userProfileMapper.toResponse(profile);
         
         return ResponseEntity.ok(SuccessResponse.success("Profile updated successfully", response));
+    }
+
+    /**
+     * Uploads an avatar image directly to Cloudinary for the currently authenticated user.
+     */
+    @PostMapping("/me/avatar")
+    public ResponseEntity<SuccessResponse<UserProfileResponse>> uploadAvatar(
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @RequestParam("file") MultipartFile file) {
+
+        UserProfile profile = userProfileService.uploadAvatar(authenticatedUser.getId(), file);
+        UserProfileResponse response = userProfileMapper.toResponse(profile);
+
+        return ResponseEntity.ok(SuccessResponse.success("Avatar uploaded successfully", response));
     }
 
     /**

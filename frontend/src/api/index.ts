@@ -53,8 +53,22 @@ export const usersApi = {
       body: JSON.stringify(data),
     }),
 
+  uploadAvatar: (file: File): Promise<UserProfile> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiClient<UserProfile>('/api/v1/users/me/avatar', {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
   getPublicProfile: (userId: string): Promise<UserProfile> =>
     apiClient<UserProfile>(`/api/v1/users/${userId}`),
+
+  searchProfiles: (query?: string, page = 0, size = 20): Promise<PageResponse<UserProfile>> => {
+    const q = query ? `?query=${encodeURIComponent(query)}&page=${page}&size=${size}` : `?page=${page}&size=${size}`;
+    return apiClient<PageResponse<UserProfile>>(`/api/v1/users${q}`);
+  },
 };
 
 // Conversations APIs
@@ -70,43 +84,6 @@ export const conversationsApi = {
       method: 'POST',
       body: JSON.stringify({ recipientId }),
     }),
-
-  createGroupConversation: (name: string): Promise<Conversation> =>
-    apiClient<Conversation>('/api/v1/conversations/group', {
-      method: 'POST',
-      body: JSON.stringify({ name }),
-    }),
-
-  getParticipants: (conversationId: string): Promise<ConversationParticipant[]> =>
-    apiClient<ConversationParticipant[]>(`/api/v1/conversations/${conversationId}/participants`),
-
-  addParticipant: (conversationId: string, userId: string): Promise<ConversationParticipant> =>
-    apiClient<ConversationParticipant>(`/api/v1/conversations/${conversationId}/participants`, {
-      method: 'POST',
-      body: JSON.stringify({ userId }),
-    }),
-
-  removeParticipant: (conversationId: string, userId: string): Promise<void> =>
-    apiClient<void>(`/api/v1/conversations/${conversationId}/participants/${userId}`, {
-      method: 'DELETE',
-    }),
-
-  leaveConversation: (conversationId: string): Promise<void> =>
-    apiClient<void>(`/api/v1/conversations/${conversationId}/leave`, {
-      method: 'POST',
-    }),
-
-  updateConversation: (conversationId: string, name: string): Promise<Conversation> =>
-    apiClient<Conversation>(`/api/v1/conversations/${conversationId}`, {
-      method: 'PUT',
-      body: JSON.stringify({ name }),
-    }),
-
-  archiveConversation: (conversationId: string): Promise<void> =>
-    apiClient<void>(`/api/v1/conversations/${conversationId}/archive`, { method: 'POST' }),
-
-  unarchiveConversation: (conversationId: string): Promise<void> =>
-    apiClient<void>(`/api/v1/conversations/${conversationId}/unarchive`, { method: 'POST' }),
 };
 
 // Messages APIs
@@ -163,11 +140,6 @@ export const presenceApi = {
 
 // Read Receipts APIs
 export const readReceiptsApi = {
-  markDelivered: (messageId: string): Promise<void> =>
-    apiClient<void>(`/api/v1/read-receipts/messages/${messageId}/delivered`, {
-      method: 'PATCH',
-    }),
-
   markSeen: (messageId: string): Promise<boolean> =>
     apiClient<boolean>(`/api/v1/read-receipts/messages/${messageId}/seen`, {
       method: 'PATCH',
@@ -177,12 +149,6 @@ export const readReceiptsApi = {
     apiClient<number>(`/api/v1/read-receipts/conversations/${conversationId}/seen`, {
       method: 'PATCH',
     }),
-
-  getReceipts: (messageId: string): Promise<ReadReceiptResponse[]> =>
-    apiClient<ReadReceiptResponse[]>(`/api/v1/read-receipts/messages/${messageId}`),
-
-  getUnreadCount: (): Promise<number> =>
-    apiClient<number>('/api/v1/read-receipts/unread/count'),
 };
 
 // Notifications APIs

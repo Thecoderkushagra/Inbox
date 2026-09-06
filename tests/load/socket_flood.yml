@@ -1,0 +1,34 @@
+config:
+  target: "ws://localhost:8080/ws/websocket"
+  phases:
+    - duration: 30
+      arrivalRate: 5
+      rampTo: 50
+      name: "Warm-up phase (Ramping up concurrent WebSocket connections)"
+    - duration: 60
+      arrivalRate: 100
+      name: "Sustained Stress phase (100 concurrent WebSocket connections)"
+  ws:
+    subprotocols:
+      - "v10.stomp"
+      - "v11.stomp"
+      - "v12.stomp"
+
+scenarios:
+  - name: "STOMP Connection & Flood Dispatch"
+    engine: ws
+    flow:
+      # 1. Send STOMP CONNECT frame
+      - send: "CONNECT\naccept-version:1.1,1.0\nheart-beat:10000,10000\nAuthorization:Bearer mock_token_for_load_test\n\n\u0000"
+      - think: 1
+      # 2. Subscribe to conversation topic
+      - send: "SUBSCRIBE\nid:sub-0\ndestination:/topic/conversations.load_test_room_1\n\n\u0000"
+      - think: 1
+      # 3. Burst message loop (20 msg/sec per connection)
+      - loop:
+          - send: "SEND\ndestination:/app/chat.send\ncontent-type:application/json\n\n{\"conversationId\":\"load_test_room_1\",\"content\":\"Artillery load burst message\"}\u0000"
+          - think: 0.05
+        count: 20
+      - think: 2
+      # 4. Graceful DISCONNECT
+      - send: "DISCONNECT\n\n\u0000"

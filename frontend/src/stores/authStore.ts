@@ -22,6 +22,7 @@ interface AuthState {
   logout: () => Promise<void>;
   fetchProfile: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
+  uploadAvatar: (file: File) => Promise<string>;
   clearError: () => void;
   initialize: () => void;
 }
@@ -133,6 +134,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       toast.success('Profile updated successfully!');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Update failed';
+      set({ error: message, isLoading: false });
+      toast.error(message);
+      throw err;
+    }
+  },
+
+  uploadAvatar: async (file: File) => {
+    set({ isLoading: true });
+    try {
+      const updated = await usersApi.uploadAvatar(file);
+      set({ profile: updated, isLoading: false });
+      toast.success('Avatar uploaded successfully!');
+      return updated.avatarUrl || '';
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to upload avatar';
       set({ error: message, isLoading: false });
       toast.error(message);
       throw err;

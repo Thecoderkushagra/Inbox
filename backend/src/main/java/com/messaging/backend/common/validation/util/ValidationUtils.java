@@ -19,8 +19,8 @@ import java.util.regex.Pattern;
  */
 public final class ValidationUtils {
 
-    // Simple pattern to detect angle brackets containing text
-    private static final Pattern HTML_PATTERN = Pattern.compile("<[^>]+>");
+    // Pattern to detect HTML tags, javascript: links, or data:text/html payloads
+    private static final Pattern HTML_PATTERN = Pattern.compile("<[^>]+>|javascript\\s*:|data\\s*:\\s*text/html", Pattern.CASE_INSENSITIVE);
 
     private ValidationUtils() {
         // Prevent instantiation

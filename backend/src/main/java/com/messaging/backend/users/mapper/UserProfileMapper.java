@@ -29,7 +29,6 @@ public class UserProfileMapper {
                 .website(profile.getWebsite())
                 .birthDate(profile.getBirthDate())
                 .gender(profile.getGender())
-                .profileVisibility(profile.getProfileVisibility())
                 .verified(profile.isVerified())
                 .build();
     }

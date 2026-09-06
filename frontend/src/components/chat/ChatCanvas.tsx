@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useAuthStore } from '@/stores/authStore';
 import { useChatStore } from '@/stores/chatStore';
 import { usePresenceStore } from '@/stores/presenceStore';
@@ -7,9 +8,12 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { MessageBubble } from './MessageBubble';
 import { MediaUploader } from './MediaUploader';
+import { AddMemberModal } from './AddMemberModal';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { mediaApi } from '@/api';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { conversationsApi, mediaApi } from '@/api';
 import { formatRelativeTime } from '@/utils/formatDate';
+import { ConversationParticipant } from '@/types';
 import {
   Send,
   Lock,
@@ -18,6 +22,7 @@ import {
   Info,
   ChevronLeft,
   Users,
+  UserPlus,
   Shield,
   MessageSquare,
 } from 'lucide-react';
@@ -39,9 +44,13 @@ export const ChatCanvas: React.FC<ChatCanvasProps> = ({
     conversations,
     messages,
     sendMessage,
+    addMediaAttachment,
+    addConversation,
     isSendingMessage,
     typingUsers,
     fetchMessages,
+    isLoadingConversations,
+    setActiveConversationId,
   } = useChatStore();
   const { getUserPresence } = usePresenceStore();
   const navigate = useNavigate();
@@ -50,9 +59,59 @@ export const ChatCanvas: React.FC<ChatCanvasProps> = ({
   const [inputContent, setInputContent] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isLoadingConv, setIsLoadingConv] = useState(false);
+  const [conversationNotFound, setConversationNotFound] = useState(false);
+  const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Sync activeConversationId in chatStore
+  useEffect(() => {
+    setActiveConversationId(conversationId || null);
+  }, [conversationId, setActiveConversationId]);
+
+  // If conversationId is in URL but not in store, fetch it directly
+  useEffect(() => {
+    if (!conversationId) {
+      setConversationNotFound(false);
+      return;
+    }
+
+    if (conversations.some((c) => c.id === conversationId)) {
+      setConversationNotFound(false);
+      return;
+    }
+
+    let isMounted = true;
+    setIsLoadingConv(true);
+    setConversationNotFound(false);
+
+    conversationsApi
+      .getConversation(conversationId)
+      .then((c) => {
+        if (!isMounted) return;
+        if (c) {
+          addConversation(c);
+        } else {
+          setConversationNotFound(true);
+        }
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        console.error('Failed to fetch conversation:', err);
+        setConversationNotFound(true);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoadingConv(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [conversationId, conversations, addConversation]);
 
   const activeConversation = conversations.find((c) => c.id === conversationId);
   const currentMessages = conversationId ? messages[conversationId] || [] : [];
@@ -88,6 +147,21 @@ export const ChatCanvas: React.FC<ChatCanvasProps> = ({
 
   const displayTitle = getDisplayTitle();
 
+  const currentUserParticipant = activeConversation?.participants?.find(
+    (p) => p.userId === user?.id
+  );
+  const isOwnerOrAdmin =
+    currentUserParticipant?.role === 'OWNER' ||
+    currentUserParticipant?.role === 'ADMIN';
+
+  const participantMap = useMemo(() => {
+    const map = new Map<string, ConversationParticipant>();
+    activeConversation?.participants?.forEach((p) => {
+      map.set(p.userId, p);
+    });
+    return map;
+  }, [activeConversation?.participants]);
+
   const handleSend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (
@@ -113,16 +187,27 @@ export const ChatCanvas: React.FC<ChatCanvasProps> = ({
       if (fileToUpload && msg) {
         setIsUploading(true);
         try {
-          await mediaApi.uploadAttachment(msg.id, fileToUpload);
-          fetchMessages(conversationId);
-        } catch (uploadErr) {
+          const uploaded = await mediaApi.uploadAttachment(msg.id, fileToUpload);
+          if (uploaded) {
+            addMediaAttachment({
+              ...uploaded,
+              messageId: msg.id,
+              conversationId,
+            });
+          }
+          await fetchMessages(conversationId);
+          toast.success('Image attached successfully');
+        } catch (uploadErr: unknown) {
           console.error('Failed to upload attachment:', uploadErr);
+          const errorMsg = uploadErr instanceof Error ? uploadErr.message : 'Failed to upload image';
+          toast.error(errorMsg);
         } finally {
           setIsUploading(false);
         }
       }
     } catch (err) {
       console.error('Failed to send message:', err);
+      toast.error('Failed to send message');
     }
   };
 
@@ -133,15 +218,53 @@ export const ChatCanvas: React.FC<ChatCanvasProps> = ({
     }
   };
 
-  if (!activeConversation) {
+  if (!conversationId) {
     return (
       <div className="flex-1 h-full flex flex-col items-center justify-center bg-slate-950/40 p-6 text-center select-none">
         <EmptyState
           icon={<MessageSquare className="w-8 h-8" />}
           title="Select a conversation"
-          description="Choose a conversation from the sidebar or start a new chat to begin messaging with end-to-end encryption."
-          actionLabel="Start a Chat"
-          onAction={() => navigate('/compose')}
+          description="Choose a conversation from your chats or start a new message to begin chatting securely."
+          actionLabel="Search Peoples"
+          onAction={() => navigate('/people')}
+        />
+      </div>
+    );
+  }
+
+  if (!activeConversation) {
+    if (isLoadingConv || isLoadingConversations || !conversationNotFound) {
+      return (
+        <div className="flex-1 h-full flex flex-col bg-slate-950/40 relative overflow-hidden">
+          <header className="h-16 px-4 sm:px-6 bg-slate-900/90 border-b border-slate-800/80 flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center gap-3">
+              <Skeleton className="w-10 h-10 rounded-full" />
+              <div className="space-y-1.5">
+                <Skeleton className="w-28 h-4 rounded" />
+                <Skeleton className="w-16 h-3 rounded" />
+              </div>
+            </div>
+          </header>
+          <div className="flex-1 p-6 space-y-4">
+            <Skeleton className="w-48 h-12 rounded-2xl ml-auto" />
+            <Skeleton className="w-64 h-16 rounded-2xl" />
+            <Skeleton className="w-40 h-10 rounded-2xl ml-auto" />
+          </div>
+          <footer className="p-3 sm:p-4 bg-slate-900/90 border-t border-slate-800/80 flex-shrink-0 pb-safe">
+            <Skeleton className="w-full h-11 rounded-2xl" />
+          </footer>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex-1 h-full flex flex-col items-center justify-center bg-slate-950/40 p-6 text-center select-none">
+        <EmptyState
+          icon={<MessageSquare className="w-8 h-8" />}
+          title="Conversation not found"
+          description="The conversation you are looking for does not exist or you don't have access to it."
+          actionLabel="Back to Conversations"
+          onAction={() => navigate('/inbox')}
         />
       </div>
     );
@@ -166,20 +289,20 @@ export const ChatCanvas: React.FC<ChatCanvasProps> = ({
             name={displayTitle}
             src={otherParticipant?.avatarUrl}
             size="md"
-            status={activeConversation.type === 'DIRECT' ? otherPresence?.status : undefined}
+            status={activeConversation?.type === 'DIRECT' ? otherPresence?.status : undefined}
           />
 
           <div className="min-w-0">
             <h2 className="text-sm font-bold text-white tracking-tight truncate flex items-center gap-2">
               <span>{displayTitle}</span>
-              {activeConversation.type === 'GROUP' && (
+              {activeConversation?.type === 'GROUP' && (
                 <span className="text-[10px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 font-semibold">
                   Group
                 </span>
               )}
             </h2>
             <p className="text-[11px] text-slate-400 truncate">
-              {activeConversation.type === 'DIRECT' ? (
+              {activeConversation?.type === 'DIRECT' ? (
                 otherPresence?.status === 'ONLINE' ? (
                   <span className="text-emerald-400 font-medium">Online</span>
                 ) : otherPresence?.lastSeen ? (
@@ -188,7 +311,7 @@ export const ChatCanvas: React.FC<ChatCanvasProps> = ({
                   'Offline'
                 )
               ) : (
-                `${activeConversation.participants?.length || 0} members`
+                `${activeConversation?.participants?.length || 0} members`
               )}
             </p>
           </div>
@@ -196,6 +319,20 @@ export const ChatCanvas: React.FC<ChatCanvasProps> = ({
 
         {/* Right Header Action */}
         <div className="flex items-center gap-1.5">
+          {activeConversation?.type === 'GROUP' && isOwnerOrAdmin && (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setIsAddMemberModalOpen(true)}
+              className="h-8 px-2.5 rounded-xl gap-1.5 text-xs text-indigo-300 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/20"
+              title="Add people to group"
+              aria-label="Add people to group"
+            >
+              <UserPlus className="w-3.5 h-3.5 text-indigo-400" />
+              <span className="hidden sm:inline">Add People</span>
+            </Button>
+          )}
+
           {onToggleInspector && (
             <button
               onClick={onToggleInspector}
@@ -234,7 +371,8 @@ export const ChatCanvas: React.FC<ChatCanvasProps> = ({
               key={msg.id}
               message={msg}
               currentUser={user}
-              conversationType={activeConversation.type}
+              conversationType={activeConversation?.type ?? 'DIRECT'}
+              sender={participantMap.get(msg.senderId)}
             />
           ))
         )}
@@ -281,8 +419,8 @@ export const ChatCanvas: React.FC<ChatCanvasProps> = ({
       )}
 
       {/* Composer Footer */}
-      <footer className="p-3 sm:p-4 bg-slate-900/90 backdrop-blur-md border-t border-slate-800/80">
-        <form onSubmit={handleSend} className="flex items-end gap-2 max-w-5xl mx-auto">
+      <footer className="p-3 sm:p-4 bg-slate-900/90 backdrop-blur-md border-t border-slate-800/80 flex-shrink-0 z-20 pb-safe relative">
+        <form onSubmit={handleSend} className="flex items-end gap-2 max-w-5xl mx-auto w-full">
           <MediaUploader
             onMediaUploaded={(file) => setSelectedFile(file)}
             disabled={isSendingMessage || isUploading}
@@ -317,6 +455,14 @@ export const ChatCanvas: React.FC<ChatCanvasProps> = ({
           </Button>
         </form>
       </footer>
+
+      {activeConversation && activeConversation.type === 'GROUP' && (
+        <AddMemberModal
+          isOpen={isAddMemberModalOpen}
+          onClose={() => setIsAddMemberModalOpen(false)}
+          conversation={activeConversation}
+        />
+      )}
     </div>
   );
 };
